@@ -44,7 +44,15 @@ class DoctorRepository(BaseRepository):
     def list_active(self) -> List[DoctorModel]:
         raise NotImplementedError
 
-    def search_by_name(self, name_query: str) -> List[DoctorModel]:
+    def search(
+        self,
+        specialty: Optional[str] = None,
+        doctor_name: Optional[str] = None,
+        location: Optional[str] = None,
+        clinic_name: Optional[str] = None,
+        is_active: Optional[bool] = True,
+        limit: int = 10,
+    ) -> List[DoctorModel]:
         raise NotImplementedError
 
     def add_specialty(self, doctor_id: uuid.UUID, specialty_id: uuid.UUID) -> None:

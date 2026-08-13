@@ -83,6 +83,41 @@ class InMemoryDoctorRepository(DoctorRepository):
         query = name_query.lower()
         return [doc for doc in self._storage.values() if query in doc.name.lower()]
 
+    def search(
+        self,
+        specialty: Optional[str] = None,
+        doctor_name: Optional[str] = None,
+        location: Optional[str] = None,
+        clinic_name: Optional[str] = None,
+        is_active: Optional[bool] = True,
+        limit: int = 10,
+    ) -> List[DoctorModel]:
+        results = []
+        for doc in self._storage.values():
+            if is_active is not None and doc.is_active != is_active:
+                continue
+            if doctor_name and doctor_name.lower() not in doc.name.lower():
+                continue
+            if location and (
+                not doc.location or location.lower() not in doc.location.lower()
+            ):
+                continue
+            if clinic_name and (
+                not doc.clinic_name
+                or clinic_name.lower() not in doc.clinic_name.lower()
+            ):
+                continue
+            if specialty:
+                doc_specs = self.get_specialties(doc.id)
+                if not any(
+                    specialty.lower() in spec.name.lower() for spec in doc_specs
+                ):
+                    continue
+            results.append(doc)
+            if len(results) >= limit:
+                break
+        return results
+
     def add_specialty(self, doctor_id: uuid.UUID, specialty_id: uuid.UUID) -> None:
         if doctor_id not in self._storage:
             raise ValueError(f"Doctor with ID '{doctor_id}' does not exist.")

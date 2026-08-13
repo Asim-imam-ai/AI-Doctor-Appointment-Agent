@@ -7,9 +7,15 @@
 ```
 API Layer (FastAPI)
        ↓
-Service Layer (Business Logic)
+LangGraph Agent Workflow (State Orchestration)
        ↓
-Repository Layer (Data Abstraction)
+Doctor Discovery Agent Node
+       ↓
+Doctor Search Tool (Read-Only Tool Boundary)
+       ↓
+Doctor Service (Business Logic)
+       ↓
+Doctor Repository (Data Abstraction)
        ↓
 Supabase / PostgreSQL Database
 ```
@@ -32,6 +38,24 @@ Repository Layer (Data Abstraction)
        ↓
 Supabase / PostgreSQL Database
 ```
+
+## Phase 3 — Doctor Discovery Agent Architecture
+
+### 1. LangGraph State Workflow
+- Graph State: `DoctorDiscoveryState` containing typed `messages`, `user_message`, `intent`, `search_criteria`, `tool_results`, `response`, `error`, and iteration/tool counters.
+- Workflow Flow: `START` → `classify_intent` → (`agent` ↔ `tools`) → `END`.
+- Intent Routing: Safely rejects medical advice/diagnosis (`OUT_OF_SCOPE`) and appointment mutation requests like booking/cancelling/rescheduling (`UNSUPPORTED`) before triggering LLM tool invocation.
+
+### 2. Read-Only Tool Allowlist Boundary
+- Tool Allowlist: `DOCTOR_DISCOVERY_TOOLS = [search_doctors_tool, get_doctor_details_tool]`.
+- Strict Tool Safety: The agent does NOT have access to booking, cancellation, rescheduling, SQL execution, database mutation, email, or admin tools.
+
+### 3. Data Access & Security Guarantees
+1. **No Direct LLM Database Access:** The LLM does NOT access the database directly and cannot execute raw SQL or construct arbitrary database queries.
+2. **Deterministic Data Retrieval:** Tools call `DoctorService` which routes through `DoctorRepository` to Supabase/PostgreSQL.
+3. **Doctor Discovery is Read-Only:** Doctor discovery retrieves profile and specialty details. It does NOT claim appointment slot availability or confirm bookings.
+4. **Appointment Availability in Phase 4:** Checking real-time slot availability is deferred to Phase 4.
+5. **No Booking/Mutation:** Booking, rescheduling, and cancellation workflows are strictly prohibited in Phase 3.
 
 ## Phase 2 Data & Domain Layer Architecture
 

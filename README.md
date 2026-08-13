@@ -8,6 +8,7 @@ A production-oriented AI Doctor Appointment Agent built with Python 3.12, FastAP
 
 - **Phase 1 (Completed):** Foundation + CI Baseline established (FastAPI setup, Pydantic Settings, API versioning, Health checks, Docker, Ruff, pytest, GitHub Actions).
 - **Phase 2 (Completed):** Supabase + Domain + Data Layer established (Domain Pydantic models, Supabase migrations with constraints/indexes, Repository layer, Service layer, deterministic tests).
+- **Phase 3 (Completed):** Doctor Discovery Agent established (LangGraph workflow, read-only search tools, intent safety boundaries, FastAPI endpoint `/api/v1/doctors/search`, unit & graph test suite).
 
 ## Tech Stack
 
@@ -19,7 +20,7 @@ A production-oriented AI Doctor Appointment Agent built with Python 3.12, FastAP
 ## Project Architecture
 
 ```
-User → FastAPI → Guardrails → LangGraph → Agent Nodes → Tools → Services → Repositories → Supabase
+User → FastAPI → LangGraph → Doctor Discovery Agent → Doctor Search Tool → Doctor Service → Doctor Repository → Supabase
 ```
 For detailed architectural documentation, see [docs/architecture.md](docs/architecture.md).
 
@@ -51,7 +52,12 @@ For detailed architectural documentation, see [docs/architecture.md](docs/archit
    curl http://localhost:8000/api/v1/health
    ```
 
-5. **Run Tests & Linting:**
+5. **Test Doctor Search Endpoint:**
+   ```bash
+   curl -X POST http://localhost:8000/api/v1/doctors/search -H "Content-Type: application/json" -d "{\"message\": \"Find me a cardiologist\"}"
+   ```
+
+6. **Run Tests & Linting:**
    ```bash
    pytest
    ruff check .
@@ -71,9 +77,8 @@ curl http://localhost:8000/api/v1/health
 
 ## Future Phases Roadmap
 
-- Doctor discovery & availability search
+- Doctor availability search & slot management (Phase 4)
 - Appointment booking, rescheduling, and cancellation workflows
-- LangGraph agent workflow & conversation state checkpointing
 - Guardrails & prompt injection / jailbreak protection
 - Human-In-The-Loop (HITL) approval mechanism
 - Production AWS deployment pipeline

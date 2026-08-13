@@ -98,6 +98,42 @@ class SupabaseDoctorRepository(DoctorRepository):
         )
         return [DoctorModel.model_validate(item) for item in res.data]
 
+    def search(
+        self,
+        specialty: Optional[str] = None,
+        doctor_name: Optional[str] = None,
+        location: Optional[str] = None,
+        clinic_name: Optional[str] = None,
+        is_active: Optional[bool] = True,
+        limit: int = 10,
+    ) -> List[DoctorModel]:
+        if not self.client:
+            raise RuntimeError("Supabase client is not initialized.")
+
+        query = self.client.table("doctors").select("*")
+        if is_active is not None:
+            query = query.eq("is_active", is_active)
+        if doctor_name:
+            query = query.ilike("name", f"%{doctor_name}%")
+        if location:
+            query = query.ilike("location", f"%{location}%")
+        if clinic_name:
+            query = query.ilike("clinic_name", f"%{clinic_name}%")
+
+        query = query.limit(limit)
+        res = query.execute()
+        doctors = [DoctorModel.model_validate(item) for item in res.data]
+
+        if specialty:
+            filtered = []
+            for doc in doctors:
+                specs = self.get_specialties(doc.id)
+                if any(specialty.lower() in s.name.lower() for s in specs):
+                    filtered.append(doc)
+            return filtered
+
+        return doctors
+
     def add_specialty(self, doctor_id: uuid.UUID, specialty_id: uuid.UUID) -> None:
         if not self.client:
             raise RuntimeError("Supabase client is not initialized.")
