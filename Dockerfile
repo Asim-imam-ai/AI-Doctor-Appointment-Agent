@@ -1,5 +1,5 @@
 # Multi-stage Dockerfile for AI Doctor Appointment Agent
-FROM python:3.12-slim as builder
+FROM python:3.12-slim AS builder
 
 WORKDIR /app
 
@@ -8,11 +8,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install python dependencies directly into system/virtualenv
-COPY pyproject.toml .
+# Copy package config, readme, and source files required for wheel build
+COPY pyproject.toml README.md ./
+COPY app ./app
+
 RUN pip install --no-cache-dir .
 
-FROM python:3.12-slim as runner
+FROM python:3.12-slim AS runner
 
 WORKDIR /app
 
