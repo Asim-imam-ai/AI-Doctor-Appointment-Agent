@@ -7,6 +7,7 @@ from typing import List, Optional
 from app.models import (
     AppointmentModel,
     AppointmentStatus,
+    AvailabilityStatus,
     DoctorAvailabilityModel,
     DoctorModel,
     PatientModel,
@@ -267,6 +268,21 @@ class SupabaseAvailabilityRepository(AvailabilityRepository):
         query = query.order("start_time", desc=False).limit(limit)
         res = query.execute()
         return [DoctorAvailabilityModel.model_validate(item) for item in res.data]
+
+    def update_status(
+        self, availability_id: uuid.UUID, status: AvailabilityStatus
+    ) -> Optional[DoctorAvailabilityModel]:
+        if not self.client:
+            raise RuntimeError("Supabase client is not initialized.")
+        res = (
+            self.client.table("doctor_availability")
+            .update({"status": status.value})
+            .eq("id", str(availability_id))
+            .execute()
+        )
+        if not res.data:
+            return None
+        return DoctorAvailabilityModel.model_validate(res.data[0])
 
 
 class SupabaseAppointmentRepository(AppointmentRepository):

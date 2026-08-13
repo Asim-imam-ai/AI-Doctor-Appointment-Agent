@@ -216,6 +216,18 @@ class InMemoryAvailabilityRepository(AvailabilityRepository):
         matching.sort(key=lambda s: s.start_time)
         return matching[:limit]
 
+    def update_status(
+        self, availability_id: uuid.UUID, status: AvailabilityStatus
+    ) -> Optional[DoctorAvailabilityModel]:
+        slot = self._storage.get(availability_id)
+        if not slot:
+            return None
+        updated_slot = slot.model_copy(
+            update={"status": status, "updated_at": datetime.now(timezone.utc)}
+        )
+        self._storage[availability_id] = updated_slot
+        return updated_slot
+
 
 class InMemoryAppointmentRepository(AppointmentRepository):
     def __init__(

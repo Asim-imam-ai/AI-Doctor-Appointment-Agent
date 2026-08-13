@@ -7,6 +7,7 @@ from typing import List, Optional
 from app.models import (
     AppointmentModel,
     AppointmentStatus,
+    AvailabilityStatus,
     DoctorAvailabilityModel,
     DoctorModel,
     PatientModel,
@@ -101,6 +102,11 @@ class AvailabilityRepository(BaseRepository):
         end_before: Optional[datetime] = None,
         limit: int = 20,
     ) -> List[DoctorAvailabilityModel]:
+        raise NotImplementedError
+
+    def update_status(
+        self, availability_id: uuid.UUID, status: AvailabilityStatus
+    ) -> Optional[DoctorAvailabilityModel]:
         raise NotImplementedError
 
 
