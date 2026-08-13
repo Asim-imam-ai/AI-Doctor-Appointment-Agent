@@ -1,6 +1,7 @@
 """Supabase implementation of repository layer."""
 
 import uuid
+from datetime import datetime
 from typing import List, Optional
 
 from app.models import (
@@ -239,6 +240,32 @@ class SupabaseAvailabilityRepository(AvailabilityRepository):
             .eq("doctor_id", str(doctor_id))
             .execute()
         )
+        return [DoctorAvailabilityModel.model_validate(item) for item in res.data]
+
+    def search_available_slots(
+        self,
+        doctor_id: Optional[uuid.UUID] = None,
+        start_after: Optional[datetime] = None,
+        end_before: Optional[datetime] = None,
+        limit: int = 20,
+    ) -> List[DoctorAvailabilityModel]:
+        if not self.client:
+            raise RuntimeError("Supabase client is not initialized.")
+
+        query = (
+            self.client.table("doctor_availability")
+            .select("*")
+            .eq("status", "AVAILABLE")
+        )
+        if doctor_id:
+            query = query.eq("doctor_id", str(doctor_id))
+        if start_after:
+            query = query.gte("start_time", start_after.isoformat())
+        if end_before:
+            query = query.lte("end_time", end_before.isoformat())
+
+        query = query.order("start_time", desc=False).limit(limit)
+        res = query.execute()
         return [DoctorAvailabilityModel.model_validate(item) for item in res.data]
 
 

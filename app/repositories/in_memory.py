@@ -194,6 +194,28 @@ class InMemoryAvailabilityRepository(AvailabilityRepository):
     def get_by_doctor(self, doctor_id: uuid.UUID) -> List[DoctorAvailabilityModel]:
         return [slot for slot in self._storage.values() if slot.doctor_id == doctor_id]
 
+    def search_available_slots(
+        self,
+        doctor_id: Optional[uuid.UUID] = None,
+        start_after: Optional[datetime] = None,
+        end_before: Optional[datetime] = None,
+        limit: int = 20,
+    ) -> List[DoctorAvailabilityModel]:
+        matching = []
+        for slot in self._storage.values():
+            if slot.status != AvailabilityStatus.AVAILABLE:
+                continue
+            if doctor_id and slot.doctor_id != doctor_id:
+                continue
+            if start_after and slot.start_time < start_after:
+                continue
+            if end_before and slot.end_time > end_before:
+                continue
+            matching.append(slot)
+
+        matching.sort(key=lambda s: s.start_time)
+        return matching[:limit]
+
 
 class InMemoryAppointmentRepository(AppointmentRepository):
     def __init__(
