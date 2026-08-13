@@ -7,6 +7,17 @@
 ```
 API Layer (FastAPI)
        ↓
+Service Layer (Business Logic)
+       ↓
+Repository Layer (Data Abstraction)
+       ↓
+Supabase / PostgreSQL Database
+```
+
+Full Target Architecture:
+```
+API Layer (FastAPI)
+       ↓
 Guardrails Layer (Input/Output & Safety Checks)
        ↓
 LangGraph Agent Workflow Layer (State Orchestration)
@@ -22,9 +33,28 @@ Repository Layer (Data Abstraction)
 Supabase / PostgreSQL Database
 ```
 
-## Data Access & Security Boundaries
+## Phase 2 Data & Domain Layer Architecture
 
+### 1. Database Schema (`supabase/migrations/001_initial_domain_schema.sql`)
+The PostgreSQL database consists of 6 core domain tables:
+- `patients`: Patient profiles indexed by `external_user_id` and `email`.
+- `doctors`: Doctor profiles with `is_active` status and consultation durations.
+- `specialties`: Medical specialties.
+- `doctor_specialties`: Junction table establishing many-to-many doctor-specialty relationships.
+- `doctor_availability`: Doctor available time slots with `status` (`AVAILABLE`, `BOOKED`, `BLOCKED`).
+- `appointments`: Patient-doctor appointment records with controlled `status` (`PENDING`, `CONFIRMED`, `CANCELLED`, `RESCHEDULED`, `COMPLETED`, `NO_SHOW`, `EXPIRED`).
+
+### 2. Database Constraints & Double-Booking Protection
+- Timeorder checks: `start_time < end_time` enforced via database table constraints.
+- Status enum checks: `status IN (...)` constraints prevent invalid status values.
+- Double-booking prevention: PostgreSQL Exclusion constraint using `btree_gist` extension prevents overlapping appointment times (`tstzrange`) for the same doctor for non-cancelled/non-expired appointments (`PENDING` or `CONFIRMED`).
+
+### 3. Timezone Strategy
+- All timestamps (`start_time`, `end_time`, `created_at`, `updated_at`) are canonically stored with timezone awareness (`TIMESTAMPTZ` in PostgreSQL, timezone-aware `datetime` in Python models).
+- Patient models track preferred timezone (default `UTC`).
+
+### 4. Data Access & Security Boundaries
 1. **LLM Isolation:** The LLM NEVER directly accesses the database or executes raw SQL queries.
-2. **Authoritative State:** Database/service state is authoritative. The LLM must not hallucinate availability, bookings, or cancellations.
-3. **Human-In-The-Loop (HITL):** Sensitive state mutations (booking, rescheduling, cancelling) require HITL approval before execution.
-4. **Guardrail Enforcements:** Prompt injection protection, jailbreak detection, emergency detection, and healthcare scope enforcement operate as independent security boundaries around agent execution nodes.
+2. **Authoritative State:** Database/service state is authoritative. Only a successful backend transaction establishes `CONFIRMED` appointment status.
+3. **Supabase Security:** Service role keys remain strictly server-side. Application logic routes through repository abstractions.
+4. **Test Database Strategy:** Repositories implement both `SupabaseRepository` (production/staging) and `InMemoryRepository` (deterministic testing/CI without external Supabase dependencies).
