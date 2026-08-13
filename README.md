@@ -7,6 +7,7 @@ A production-oriented AI Doctor Appointment Agent built with Python 3.12, FastAP
 ## Project Status
 
 - **Phase 1 (Completed):** Foundation + CI Baseline established (FastAPI setup, Pydantic Settings, API versioning, Health checks, Docker, Ruff, pytest, GitHub Actions).
+- **Phase 2 (Completed):** Supabase + Domain + Data Layer established (Domain Pydantic models, Supabase migrations with constraints/indexes, Repository layer, Service layer, deterministic tests).
 
 ## Tech Stack
 
