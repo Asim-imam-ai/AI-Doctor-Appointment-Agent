@@ -163,7 +163,7 @@ def test_doctor_service_registration_and_search():
     service = DoctorService(doctor_repo=doc_repo, specialty_repo=spec_repo)
     doctor = service.register_doctor(name="Dr. Sarah Connor")
 
-    results = service.search_doctors("Sarah")
+    results = service.search_doctors(doctor_name="Sarah")
     assert len(results) == 1
     assert results[0].id == doctor.id
 

@@ -40,7 +40,25 @@ class DoctorService:
     def list_active_doctors(self) -> List[DoctorModel]:
         return self.doctor_repo.list_active()
 
-    def search_doctors(self, query: str) -> List[DoctorModel]:
+    def search_doctors(
+        self,
+        specialty: Optional[str] = None,
+        doctor_name: Optional[str] = None,
+        location: Optional[str] = None,
+        clinic_name: Optional[str] = None,
+        is_active: Optional[bool] = True,
+        limit: int = 10,
+    ) -> List[DoctorModel]:
+        return self.doctor_repo.search(
+            specialty=specialty,
+            doctor_name=doctor_name,
+            location=location,
+            clinic_name=clinic_name,
+            is_active=is_active,
+            limit=limit,
+        )
+
+    def search_by_name(self, query: str) -> List[DoctorModel]:
         return self.doctor_repo.search_by_name(query)
 
     def add_specialty_to_doctor(
