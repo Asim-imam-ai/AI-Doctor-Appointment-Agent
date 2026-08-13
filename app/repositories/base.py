@@ -1,6 +1,7 @@
 """Base and interface definitions for repository layer."""
 
 import uuid
+from datetime import datetime
 from typing import List, Optional
 
 from app.models import (
@@ -91,6 +92,15 @@ class AvailabilityRepository(BaseRepository):
         raise NotImplementedError
 
     def get_by_doctor(self, doctor_id: uuid.UUID) -> List[DoctorAvailabilityModel]:
+        raise NotImplementedError
+
+    def search_available_slots(
+        self,
+        doctor_id: Optional[uuid.UUID] = None,
+        start_after: Optional[datetime] = None,
+        end_before: Optional[datetime] = None,
+        limit: int = 20,
+    ) -> List[DoctorAvailabilityModel]:
         raise NotImplementedError
 
 
