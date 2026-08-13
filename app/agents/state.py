@@ -1,5 +1,6 @@
 """State schemas for Doctor Agent LangGraph Workflows."""
 
+import uuid
 from typing import Annotated, Any, Dict, List, Optional
 
 from langchain_core.messages import BaseMessage
@@ -10,6 +11,7 @@ from app.schemas.availability_agent import (
     AvailabilitySearchCriteria,
     AvailabilitySearchResult,
 )
+from app.schemas.booking_agent import BookingProposal, BookingResult
 from app.schemas.doctor_discovery import DoctorSearchCriteria, DoctorSearchResult
 
 
@@ -34,11 +36,31 @@ class DoctorAvailabilityState(TypedDict):
     messages: Annotated[List[BaseMessage], add_messages]
     user_message: str
     user_timezone: str
-    intent: Optional[
-        str
-    ]  # e.g. "AVAILABILITY_SEARCH", "BOOKING_REQUEST", "UNSUPPORTED", "OUT_OF_SCOPE"
+    intent: Optional[str]
     availability_criteria: Optional[AvailabilitySearchCriteria]
     tool_results: Optional[AvailabilitySearchResult]
+    response: Optional[str]
+    error: Optional[str]
+    iteration_count: int
+    tool_call_count: int
+    metadata: Dict[str, Any]
+
+
+class AppointmentBookingState(TypedDict):
+    """Explicit state representation for Appointment Booking HITL Graph (Phase 5)."""
+
+    messages: Annotated[List[BaseMessage], add_messages]
+    user_message: str
+    patient_id: uuid.UUID
+    doctor_id: Optional[uuid.UUID]
+    slot_id: Optional[uuid.UUID]
+    user_timezone: str
+    reason: Optional[str]
+    intent: Optional[str]
+    booking_proposal: Optional[BookingProposal]
+    approval_status: Optional[str]  # e.g. "PENDING", "APPROVED", "REJECTED"
+    proposal_version: int
+    booking_result: Optional[BookingResult]
     response: Optional[str]
     error: Optional[str]
     iteration_count: int

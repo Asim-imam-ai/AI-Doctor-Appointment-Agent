@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import List, Optional
 
-from app.models import AppointmentModel, AppointmentStatus
+from app.models import AppointmentModel, AppointmentStatus, AvailabilityStatus
 from app.repositories import (
     get_appointment_repository,
     get_availability_repository,
@@ -89,3 +89,40 @@ class AppointmentService:
         self, appointment_id: uuid.UUID, status: AppointmentStatus
     ) -> Optional[AppointmentModel]:
         return self.appointment_repo.update_status(appointment_id, status)
+
+    def atomic_create_appointment_and_update_slot(
+        self,
+        patient_id: uuid.UUID,
+        doctor_id: uuid.UUID,
+        slot_id: uuid.UUID,
+        start_time: datetime,
+        end_time: datetime,
+        reason: Optional[str] = None,
+    ) -> AppointmentModel:
+        """Revalidate slot and atomically book appointment + update slot status."""
+        # 1. Revalidate slot
+        slot = self.availability_repo.get_by_id(slot_id)
+        if not slot:
+            raise ValueError(f"Availability slot ID '{slot_id}' does not exist.")
+        if slot.status != AvailabilityStatus.AVAILABLE:
+            raise ValueError(f"Slot '{slot_id}' is no longer available.")
+        if slot.doctor_id != doctor_id:
+            raise ValueError("Slot doctor_id mismatch.")
+
+        # 2. Create appointment (contains double-booking overlap checks in repo)
+        appt = self.create_appointment(
+            patient_id=patient_id,
+            doctor_id=doctor_id,
+            start_time=start_time,
+            end_time=end_time,
+            reason=reason,
+        )
+
+        # 3. Mark slot as BOOKED
+        self.availability_repo.update_status(slot_id, AvailabilityStatus.BOOKED)
+
+        # 4. Confirm appointment
+        confirmed_appt = self.appointment_repo.update_status(
+            appt.id, AppointmentStatus.CONFIRMED
+        )
+        return confirmed_appt or appt
