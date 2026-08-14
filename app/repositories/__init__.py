@@ -7,21 +7,30 @@ from app.repositories.base import (
     AppointmentRepository,
     AvailabilityRepository,
     DoctorRepository,
+    NotificationDeliveryRepository,
+    NotificationPreferenceRepository,
     PatientRepository,
+    ReminderRepository,
     SpecialtyRepository,
 )
 from app.repositories.in_memory import (
     InMemoryAppointmentRepository,
     InMemoryAvailabilityRepository,
     InMemoryDoctorRepository,
+    InMemoryNotificationDeliveryRepository,
+    InMemoryNotificationPreferenceRepository,
     InMemoryPatientRepository,
+    InMemoryReminderRepository,
     InMemorySpecialtyRepository,
 )
 from app.repositories.supabase import (
     SupabaseAppointmentRepository,
     SupabaseAvailabilityRepository,
     SupabaseDoctorRepository,
+    SupabaseNotificationDeliveryRepository,
+    SupabaseNotificationPreferenceRepository,
     SupabasePatientRepository,
+    SupabaseReminderRepository,
     SupabaseSpecialtyRepository,
 )
 
@@ -34,6 +43,9 @@ _in_memory_availability_repo = InMemoryAvailabilityRepository(_in_memory_doctor_
 _in_memory_appointment_repo = InMemoryAppointmentRepository(
     patient_repo=_in_memory_patient_repo, doctor_repo=_in_memory_doctor_repo
 )
+_in_memory_reminder_repo = InMemoryReminderRepository()
+_in_memory_notification_preference_repo = InMemoryNotificationPreferenceRepository()
+_in_memory_notification_delivery_repo = InMemoryNotificationDeliveryRepository()
 
 
 def get_patient_repository(client: Optional[object] = None) -> PatientRepository:
@@ -73,3 +85,30 @@ def get_appointment_repository(
     if supabase_client is not None:
         return SupabaseAppointmentRepository(supabase_client)
     return _in_memory_appointment_repo
+
+
+def get_reminder_repository(
+    client: Optional[object] = None,
+) -> ReminderRepository:
+    supabase_client = client or get_supabase_client()
+    if supabase_client is not None:
+        return SupabaseReminderRepository(supabase_client)
+    return _in_memory_reminder_repo
+
+
+def get_notification_preference_repository(
+    client: Optional[object] = None,
+) -> NotificationPreferenceRepository:
+    supabase_client = client or get_supabase_client()
+    if supabase_client is not None:
+        return SupabaseNotificationPreferenceRepository(supabase_client)
+    return _in_memory_notification_preference_repo
+
+
+def get_notification_delivery_repository(
+    client: Optional[object] = None,
+) -> NotificationDeliveryRepository:
+    supabase_client = client or get_supabase_client()
+    if supabase_client is not None:
+        return SupabaseNotificationDeliveryRepository(supabase_client)
+    return _in_memory_notification_delivery_repo
