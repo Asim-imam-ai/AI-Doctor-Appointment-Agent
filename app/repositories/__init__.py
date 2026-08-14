@@ -6,7 +6,10 @@ from app.infrastructure.supabase.client import get_supabase_client
 from app.repositories.base import (
     AppointmentRepository,
     AvailabilityRepository,
+    ConversationMessageRepository,
+    ConversationRepository,
     DoctorRepository,
+    MemoryRepository,
     NotificationDeliveryRepository,
     NotificationPreferenceRepository,
     PatientRepository,
@@ -22,11 +25,26 @@ from app.repositories.in_memory import (
     InMemoryPatientRepository,
     InMemoryReminderRepository,
     InMemorySpecialtyRepository,
+    _in_memory_conversation_message_repo,
+    _in_memory_conversation_repo,
+    _in_memory_memory_repo,
+)
+from app.repositories.in_memory import (
+    InMemoryConversationMessageRepository as InMemoryConversationMessageRepository,
+)
+from app.repositories.in_memory import (
+    InMemoryConversationRepository as InMemoryConversationRepository,
+)
+from app.repositories.in_memory import (
+    InMemoryMemoryRepository as InMemoryMemoryRepository,
 )
 from app.repositories.supabase import (
     SupabaseAppointmentRepository,
     SupabaseAvailabilityRepository,
+    SupabaseConversationMessageRepository,
+    SupabaseConversationRepository,
     SupabaseDoctorRepository,
+    SupabaseMemoryRepository,
     SupabaseNotificationDeliveryRepository,
     SupabaseNotificationPreferenceRepository,
     SupabasePatientRepository,
@@ -112,3 +130,30 @@ def get_notification_delivery_repository(
     if supabase_client is not None:
         return SupabaseNotificationDeliveryRepository(supabase_client)
     return _in_memory_notification_delivery_repo
+
+
+def get_conversation_repository(
+    client: Optional[object] = None,
+) -> ConversationRepository:
+    supabase_client = client or get_supabase_client()
+    if supabase_client is not None:
+        return SupabaseConversationRepository(supabase_client)
+    return _in_memory_conversation_repo
+
+
+def get_conversation_message_repository(
+    client: Optional[object] = None,
+) -> ConversationMessageRepository:
+    supabase_client = client or get_supabase_client()
+    if supabase_client is not None:
+        return SupabaseConversationMessageRepository(supabase_client)
+    return _in_memory_conversation_message_repo
+
+
+def get_memory_repository(
+    client: Optional[object] = None,
+) -> MemoryRepository:
+    supabase_client = client or get_supabase_client()
+    if supabase_client is not None:
+        return SupabaseMemoryRepository(supabase_client)
+    return _in_memory_memory_repo

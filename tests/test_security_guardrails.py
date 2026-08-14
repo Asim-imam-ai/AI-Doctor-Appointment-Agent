@@ -151,6 +151,7 @@ def test_output_secret_redaction():
 def test_graph_injection_interception():
     """Integration Test: Verify LangGraph graph nodes intercept prompt injection before execution."""
     from langchain_core.messages import AIMessage
+
     from tests.test_doctor_discovery import MockChatModelWithTools
 
     mock_llm = MockChatModelWithTools([AIMessage(content="Fallback LLM response")])

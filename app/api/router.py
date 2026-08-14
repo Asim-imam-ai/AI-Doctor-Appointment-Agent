@@ -2,7 +2,14 @@
 
 from fastapi import APIRouter
 
-from app.api.routes import appointments, availability, doctors, health, notifications
+from app.api.routes import (
+    appointments,
+    availability,
+    conversations,
+    doctors,
+    health,
+    notifications,
+)
 
 api_router = APIRouter()
 api_router.include_router(health.router, tags=["Health"])
@@ -15,4 +22,7 @@ api_router.include_router(
 )
 api_router.include_router(
     notifications.router, prefix="/notifications", tags=["Notifications & Reminders"]
+)
+api_router.include_router(
+    conversations.router, prefix="/conversations", tags=["Conversations & Memory"]
 )

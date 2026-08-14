@@ -26,6 +26,10 @@ class DoctorDiscoveryState(TypedDict):
 
     messages: Annotated[List[BaseMessage], add_messages]
     user_message: str
+    patient_id: Optional[uuid.UUID]
+    conversation_id: Optional[uuid.UUID]
+    memory_context: Optional[List[Dict[str, Any]]]
+    summary: Optional[str]
     intent: Optional[str]
     search_criteria: Optional[DoctorSearchCriteria]
     tool_results: Optional[DoctorSearchResult]

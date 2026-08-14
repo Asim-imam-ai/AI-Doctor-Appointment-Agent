@@ -2,14 +2,17 @@
 
 import uuid
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from app.models import (
     AppointmentModel,
     AppointmentStatus,
     AvailabilityStatus,
+    ConversationMessageModel,
+    ConversationModel,
     DoctorAvailabilityModel,
     DoctorModel,
+    MemoryItemModel,
     NotificationDeliveryModel,
     NotificationPreferenceModel,
     NotificationStatus,
@@ -207,4 +210,67 @@ class NotificationDeliveryRepository(BaseRepository):
         provider_response_id: Optional[str] = None,
         error_message: Optional[str] = None,
     ) -> Optional[NotificationDeliveryModel]:
+        raise NotImplementedError
+
+
+class ConversationRepository(BaseRepository):
+    def create(self, conversation: "ConversationModel") -> "ConversationModel":
+        raise NotImplementedError
+
+    def get_by_id(self, conversation_id: uuid.UUID) -> Optional["ConversationModel"]:
+        raise NotImplementedError
+
+    def list_for_patient(
+        self, patient_id: uuid.UUID, limit: int = 50
+    ) -> List["ConversationModel"]:
+        raise NotImplementedError
+
+    def update_summary(
+        self, conversation_id: uuid.UUID, summary: str
+    ) -> Optional["ConversationModel"]:
+        raise NotImplementedError
+
+    def update_status(
+        self, conversation_id: uuid.UUID, status: Any
+    ) -> Optional["ConversationModel"]:
+        raise NotImplementedError
+
+    def delete_conversation(self, conversation_id: uuid.UUID) -> bool:
+        raise NotImplementedError
+
+
+class ConversationMessageRepository(BaseRepository):
+    def create(self, message: "ConversationMessageModel") -> "ConversationMessageModel":
+        raise NotImplementedError
+
+    def list_by_conversation(
+        self, conversation_id: uuid.UUID, limit: int = 100
+    ) -> List["ConversationMessageModel"]:
+        raise NotImplementedError
+
+    def delete_by_conversation(self, conversation_id: uuid.UUID) -> int:
+        raise NotImplementedError
+
+
+class MemoryRepository(BaseRepository):
+    def create_or_update(self, memory: "MemoryItemModel") -> "MemoryItemModel":
+        raise NotImplementedError
+
+    def get_by_id(self, memory_id: uuid.UUID) -> Optional["MemoryItemModel"]:
+        raise NotImplementedError
+
+    def list_for_patient(
+        self, patient_id: uuid.UUID, active_only: bool = True
+    ) -> List["MemoryItemModel"]:
+        raise NotImplementedError
+
+    def get_by_key(
+        self, patient_id: uuid.UUID, key: str
+    ) -> Optional["MemoryItemModel"]:
+        raise NotImplementedError
+
+    def delete_memory(self, memory_id: uuid.UUID) -> bool:
+        raise NotImplementedError
+
+    def delete_by_key(self, patient_id: uuid.UUID, key: str) -> bool:
         raise NotImplementedError

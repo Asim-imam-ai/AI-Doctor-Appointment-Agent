@@ -4,7 +4,7 @@ import logging
 from typing import Any, Dict, Literal, Optional
 
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
+from langchain_core.messages import AIMessage, ToolMessage
 from langgraph.graph import END, START, StateGraph
 
 from app.agents.state import DoctorDiscoveryState
@@ -92,10 +92,24 @@ def agent_reasoning_node(
 
     messages = list(state.get("messages", []))
     if not messages and state.get("user_message"):
-        messages = [
-            SystemMessage(content=DOCTOR_DISCOVERY_SYSTEM_PROMPT),
-            HumanMessage(content=state["user_message"]),
-        ]
+        patient_id = state.get("patient_id")
+        memories = []
+        if patient_id:
+            from app.repositories import get_memory_repository
+            from app.services.memory_service import MemoryService
+
+            mem_service = MemoryService(get_memory_repository())
+            memories = mem_service.get_user_memories(patient_id)
+
+        from app.services.context_builder import ContextBuilder
+
+        messages = ContextBuilder.prepare_bounded_messages(
+            system_prompt=DOCTOR_DISCOVERY_SYSTEM_PROMPT,
+            user_message=state["user_message"],
+            history=[],
+            summary=state.get("summary"),
+            memories=memories,
+        )
 
     # Initialize LLM if not injected
     if llm is None:

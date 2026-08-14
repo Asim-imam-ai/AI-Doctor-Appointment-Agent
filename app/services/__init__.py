@@ -1,8 +1,9 @@
-"""Services package init."""
-
 from app.services.appointment_service import AppointmentService
 from app.services.availability_service import AvailabilityService
+from app.services.context_builder import ContextBuilder
+from app.services.conversation_service import ConversationService
 from app.services.doctor_service import DoctorService
+from app.services.memory_service import MemoryService
 from app.services.notification_service import (
     MockNotificationProvider,
     NotificationProvider,
@@ -10,6 +11,7 @@ from app.services.notification_service import (
 )
 from app.services.patient_service import PatientService
 from app.services.reminder_service import ReminderService
+from app.services.summarizer import summarize_conversation
 
 __all__ = [
     "PatientService",
@@ -20,4 +22,8 @@ __all__ = [
     "NotificationProvider",
     "MockNotificationProvider",
     "ReminderService",
+    "MemoryService",
+    "ConversationService",
+    "ContextBuilder",
+    "summarize_conversation",
 ]
