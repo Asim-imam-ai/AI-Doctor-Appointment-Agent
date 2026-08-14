@@ -1,5 +1,3 @@
-"""Central API Router for v1 endpoints."""
-
 from fastapi import APIRouter
 
 from app.api.routes import (
@@ -8,6 +6,7 @@ from app.api.routes import (
     conversations,
     doctors,
     health,
+    knowledge,
     notifications,
 )
 
@@ -25,4 +24,7 @@ api_router.include_router(
 )
 api_router.include_router(
     conversations.router, prefix="/conversations", tags=["Conversations & Memory"]
+)
+api_router.include_router(
+    knowledge.router, prefix="/knowledge", tags=["Knowledge Base & RAG"]
 )

@@ -136,3 +136,39 @@ Response
 - **Secret Redaction:** `inspect_output_safety` dynamically scrubs API keys, bearer tokens, passwords, and database connection strings from LLM outputs.
 - **No False Claims:** Output responses are validated against backend execution outcomes. The agent cannot claim booking/cancellation success unless confirmed by backend transactions.
 
+## Phase 10 — Knowledge Base & RAG Architecture
+
+```text
+Approved Knowledge Files (docs/ & knowledge/)
+       ↓
+Ingestion Pipeline (File Validation, Hash, Normalization)
+       ↓
+Chunking (Semantic Splitting with Overlap)
+       ↓
+Embeddings Service (OpenAI text-embedding-3-small / Test Double)
+       ↓
+Vector Storage (Supabase pgvector / InMemory Storage)
+       ↓
+Retriever (Active Document & Category Filtering)
+       ↓
+Context Builder (Deduplicated Context Assembly)
+       ↓
+Grounded Answer Synthesis (LLM)
+       ↓
+Output Guardrail & Citation Verification
+```
+
+### 1. Controlled Knowledge & Version Management
+- **Approved Ingestion Sources:** Only approved markdown/txt documents in `knowledge/` and `docs/` are ingested into `knowledge_documents` and `knowledge_chunks`. User inputs are treated strictly as untrusted query data.
+- **Content Hashing & Version Deactivation:** SHA-256 content hashes prevent duplicate document ingestion. Ingesting an updated version automatically deactivates prior versions (`INACTIVE`), ensuring only `ACTIVE` documents enter the retrieval pipeline.
+
+### 2. Vector Storage & Metadata Filtering
+- **Supabase pgvector / In-Memory Vector Store:** Stores 1536-dimensional embeddings with HNSW cosine index (`hnsw (embedding vector_cosine_ops)`).
+- **Metadata Filters:** Enforces strict deterministic filtering (`status = ACTIVE`, `category = APPOINTMENT_POLICY`) prior to top-k chunk context assembly.
+
+### 3. Grounded Synthesis & Safety Boundaries
+- **No-Context Fallback:** If retrieval similarity is below threshold or yields no results, the system explicitly returns `"I don't have enough information in the appointment knowledge base to answer that accurately."`
+- **Prompt Injection Defense:** Retrieved chunks are injected into a dedicated context block marked as untrusted reference data, preventing embedded text instructions from overriding system guardrails.
+- **Authoritative Operational Boundary:** RAG is never used to check live appointment states (booking, cancellation, slot availability). Operational queries route directly to authoritative database services.
+
+
