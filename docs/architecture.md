@@ -99,3 +99,40 @@ The PostgreSQL database consists of 6 core domain tables:
 - **Idempotency Keys:** Unique idempotency keys (`appointment_id:reminder_type:scheduled_at`) prevent duplicate reminder schedules.
 - **Atomic Claiming:** Multi-worker concurrency safety via atomic status transitions (`PENDING` → `PROCESSING`).
 - **Revalidation Guardrails:** Prior to dispatch, reminders revalidate appointment existence, patient ownership, active status (`CONFIRMED`), and future time bounds. Stale/cancelled appointments transition to `SKIPPED`.
+
+## Phase 8 — Advanced Guardrails, Safety & Secure Agent Boundaries
+
+```text
+Input
+ ↓
+Layer 1: Request Validation
+ ↓
+Layer 2: Input Size Limits
+ ↓
+Layer 3: Prompt Injection Defense
+ ↓
+Layer 4: Jailbreak Defense
+ ↓
+Layer 5: Medical Scope Boundary
+ ↓
+Layer 6: Authorization & Ownership
+ ↓
+Layer 7: Tool Allowlist & Policy
+ ↓
+Layer 8: Tool Input Sanitization
+ ↓
+Layer 9: Output Safety & Secret Protection
+ ↓
+Response
+```
+
+### 1. Deterministic Security Boundaries
+- **Central Guardrail Engine (`app/guardrails/engine.py`):** Centralizes input size validation, regex-based prompt injection detection, jailbreak override detection, medical scope enforcement, and secret redaction.
+- **Prompt Injection & Jailbreak Defense:** Rejects attempts to extract system prompts, bypass safety rules, or claim administrative elevation.
+- **Medical Scope Boundary:** Redirects symptom diagnosis, prescription dosage, and treatment inquiries away from LLM execution to registered healthcare providers.
+- **Strict Authorization:** Enforces deterministic resource ownership verification across patients and appointments. Raw client user IDs are never trusted without backend validation.
+
+### 2. Output Redaction & Safe Failure
+- **Secret Redaction:** `inspect_output_safety` dynamically scrubs API keys, bearer tokens, passwords, and database connection strings from LLM outputs.
+- **No False Claims:** Output responses are validated against backend execution outcomes. The agent cannot claim booking/cancellation success unless confirmed by backend transactions.
+

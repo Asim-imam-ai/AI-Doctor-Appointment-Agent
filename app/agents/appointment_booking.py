@@ -10,6 +10,7 @@ from langgraph.graph import END, START, StateGraph
 from app.agents.state import AppointmentBookingState
 from app.core.config import settings
 from app.core.prompts import BOOKING_SYSTEM_PROMPT
+from app.guardrails import GuardrailCategory, GuardrailPipeline
 from app.schemas.booking_agent import BookingProposal
 from app.tools import BOOKING_PREPARE_TOOLS
 from app.tools.booking_proposal import (
@@ -36,24 +37,32 @@ MEDICAL_DIAGNOSIS_KEYWORDS = [
 def classify_booking_intent_node(
     state: AppointmentBookingState,
 ) -> Dict[str, Any]:
-    """Node: Validate request and classify intent vs medical/cancellation requests."""
-    msg = state.get("user_message", "").strip().lower()
+    """Node: Validate request and classify intent vs medical/cancellation requests using GuardrailPipeline."""
+    msg = state.get("user_message", "").strip()
 
-    # Check for medical diagnosis
-    if any(kw in msg for kw in MEDICAL_DIAGNOSIS_KEYWORDS):
-        logger.info("Classified intent as OUT_OF_SCOPE (medical advice/diagnosis)")
+    # Run central guardrail pipeline
+    decision = GuardrailPipeline.run_input_pipeline(msg)
+    if not decision.allowed:
+        logger.info(f"Guardrail intercepted request: {decision.reason_code}")
+        mapped_intent = (
+            "OUT_OF_SCOPE"
+            if decision.category
+            in (
+                GuardrailCategory.UNSAFE_MEDICAL_REQUEST,
+                GuardrailCategory.JAILBREAK,
+                GuardrailCategory.OUT_OF_SCOPE,
+            )
+            else decision.category.value
+        )
         return {
-            "intent": "OUT_OF_SCOPE",
-            "response": (
-                "I am an appointment booking assistant and cannot provide medical "
-                "diagnoses, symptom evaluations, or treatment advice. Please consult "
-                "a qualified healthcare provider."
-            ),
+            "intent": mapped_intent,
+            "response": decision.user_message,
         }
 
     # Check for cancellation or rescheduling request
+    lower_msg = msg.lower()
     if any(
-        kw in msg
+        kw in lower_msg
         for kw in CANCELLATION_MUTATION_KEYWORDS + RESCHEDULE_MUTATION_KEYWORDS
     ):
         logger.info(

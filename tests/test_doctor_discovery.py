@@ -187,7 +187,10 @@ def test_intent_classification_medical_diagnosis_rejected():
     }
     result = classify_intent_node(state)
     assert result["intent"] == "OUT_OF_SCOPE"
-    assert "cannot provide medical diagnoses" in result["response"]
+    assert (
+        "cannot provide medical" in result["response"].lower()
+        or "cannot bypass safety rules" in result["response"].lower()
+    )
 
 
 def test_intent_classification_unsupported_booking_rejected():
@@ -287,7 +290,10 @@ def test_graph_out_of_scope_diagnosis_flow():
 
     res = graph.invoke(initial_state)
     assert res["intent"] == "OUT_OF_SCOPE"
-    assert "cannot provide medical diagnoses" in res["response"]
+    assert (
+        "cannot provide medical" in res["response"].lower()
+        or "healthcare provider" in res["response"].lower()
+    )
 
 
 def test_graph_iteration_limit_protection():

@@ -10,6 +10,7 @@ from langgraph.graph import END, START, StateGraph
 from app.agents.state import DoctorDiscoveryState
 from app.core.config import settings
 from app.core.prompts import DOCTOR_DISCOVERY_SYSTEM_PROMPT
+from app.guardrails import GuardrailCategory, GuardrailPipeline
 from app.schemas.doctor_discovery import DoctorSearchCriteria, DoctorSearchResult
 from app.tools import DOCTOR_DISCOVERY_TOOLS
 from app.tools.doctor_search import execute_doctor_search
@@ -30,23 +31,31 @@ MEDICAL_DIAGNOSIS_KEYWORDS = [
 
 
 def classify_intent_node(state: DoctorDiscoveryState) -> Dict[str, Any]:
-    """Node: Validate request and classify user message intent."""
-    msg = state.get("user_message", "").strip().lower()
+    """Node: Validate request and classify user message intent using GuardrailPipeline."""
+    msg = state.get("user_message", "").strip()
 
-    # Check for medical diagnosis / advice request
-    if any(kw in msg for kw in MEDICAL_DIAGNOSIS_KEYWORDS):
-        logger.info("Classified intent as OUT_OF_SCOPE (medical advice/diagnosis)")
+    # Run security guardrail pipeline (Size, Injection, Jailbreak, Medical Scope)
+    decision = GuardrailPipeline.run_input_pipeline(msg)
+    if not decision.allowed:
+        logger.info(f"Guardrail intercepted request: {decision.reason_code}")
+        mapped_intent = (
+            "OUT_OF_SCOPE"
+            if decision.category
+            in (
+                GuardrailCategory.UNSAFE_MEDICAL_REQUEST,
+                GuardrailCategory.JAILBREAK,
+                GuardrailCategory.OUT_OF_SCOPE,
+            )
+            else decision.category.value
+        )
         return {
-            "intent": "OUT_OF_SCOPE",
-            "response": (
-                "I am an appointment assistance system and cannot provide medical "
-                "diagnoses, symptom evaluations, or treatment advice. Please consult "
-                "a qualified healthcare provider or emergency service."
-            ),
+            "intent": mapped_intent,
+            "response": decision.user_message,
         }
 
     # Check for booking/cancellation/rescheduling request
-    if any(kw in msg for kw in UNSUPPORTED_APPOINTMENT_KEYWORDS):
+    lower_msg = msg.lower()
+    if any(kw in lower_msg for kw in UNSUPPORTED_APPOINTMENT_KEYWORDS):
         logger.info("Classified intent as UNSUPPORTED (appointment mutation requested)")
         return {
             "intent": "UNSUPPORTED",
@@ -219,7 +228,12 @@ def build_doctor_discovery_graph(llm: Optional[BaseChatModel] = None) -> Any:
     workflow.add_edge(START, "classify_intent")
 
     def route_intent(state: DoctorDiscoveryState) -> Literal["agent", "end"]:
-        if state.get("intent") in ("OUT_OF_SCOPE", "UNSUPPORTED"):
+        if state.get("intent") in (
+            "OUT_OF_SCOPE",
+            "UNSUPPORTED",
+            "PROMPT_INJECTION",
+            "INVALID_INPUT",
+        ):
             return "end"
         return "agent"
 
