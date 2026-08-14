@@ -10,6 +10,7 @@ from langgraph.graph import END, START, StateGraph
 from app.agents.state import AppointmentReschedulingState
 from app.core.config import settings
 from app.core.prompts import RESCHEDULING_SYSTEM_PROMPT
+from app.guardrails import GuardrailPipeline
 from app.schemas.management_agent import ReschedulingProposal
 from app.services import AppointmentService, AvailabilityService
 from app.tools import RESCHEDULING_PREPARE_TOOLS
@@ -34,17 +35,17 @@ MEDICAL_DIAGNOSIS_KEYWORDS = [
 def classify_rescheduling_intent_node(
     state: AppointmentReschedulingState,
 ) -> Dict[str, Any]:
-    """Node: Classifies request intent and checks safety boundaries."""
-    msg = state.get("user_message", "").strip().lower()
+    """Node: Classifies request intent and checks safety boundaries using GuardrailPipeline."""
+    msg = state.get("user_message", "").strip()
 
-    if any(kw in msg for kw in MEDICAL_DIAGNOSIS_KEYWORDS):
+    decision = GuardrailPipeline.run_input_pipeline(msg)
+    if not decision.allowed:
+        logger.info(
+            f"Guardrail intercepted rescheduling request: {decision.reason_code}"
+        )
         return {
-            "intent": "OUT_OF_SCOPE",
-            "response": (
-                "I am an appointment rescheduling assistant and cannot provide medical "
-                "diagnoses, symptom evaluations, or treatment advice. Please consult "
-                "a qualified healthcare provider."
-            ),
+            "intent": decision.category.value,
+            "response": decision.user_message,
         }
 
     return {"intent": "RESCHEDULE_APPOINTMENT"}
