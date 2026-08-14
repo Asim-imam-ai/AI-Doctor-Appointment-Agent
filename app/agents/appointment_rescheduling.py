@@ -67,10 +67,10 @@ def identify_and_authorize_old_appointment_node(
     try:
         user_appts = appt_service.list_patient_appointments(patient_id)
         active_appts = [
-            a for a in user_appts if str(a.status.value).upper() not in ("CANCELLED", "COMPLETED", "EXPIRED")
+            a
+            for a in user_appts
+            if str(a.status.value).upper() not in ("CANCELLED", "COMPLETED", "EXPIRED")
         ]
-
-
 
         if appointment_id:
             try:
@@ -92,19 +92,17 @@ def identify_and_authorize_old_appointment_node(
                     "response": f"Appointment cannot be rescheduled: {str(ve)}",
                 }
 
-
         if not active_appts:
             return {
                 "error": "No active appointments found for user.",
                 "response": "You currently have no active appointments to reschedule.",
             }
 
-
         if len(active_appts) > 1:
             appts_data = [a.model_dump(mode="json") for a in active_appts]
             prompt_list = "\n".join(
                 [
-                    f"{idx+1}. ID: {a.id} — Start: {a.start_time.strftime('%Y-%m-%d %H:%M UTC')}"
+                    f"{idx + 1}. ID: {a.id} — Start: {a.start_time.strftime('%Y-%m-%d %H:%M UTC')}"
                     for idx, a in enumerate(active_appts)
                 ]
             )
@@ -168,7 +166,7 @@ def find_replacement_slots_node(
         if not new_slot_id:
             slot_list = "\n".join(
                 [
-                    f"{idx+1}. Slot ID: {s.id} — Time: {s.start_time.strftime('%Y-%m-%d %H:%M UTC')}"
+                    f"{idx + 1}. Slot ID: {s.id} — Time: {s.start_time.strftime('%Y-%m-%d %H:%M UTC')}"
                     for idx, s in enumerate(slots)
                 ]
             )
@@ -387,7 +385,9 @@ def build_appointment_rescheduling_graph(llm: Optional[BaseChatModel] = None) ->
     workflow = StateGraph(AppointmentReschedulingState)
 
     workflow.add_node("classify_intent", classify_rescheduling_intent_node)
-    workflow.add_node("identify_appointment", identify_and_authorize_old_appointment_node)
+    workflow.add_node(
+        "identify_appointment", identify_and_authorize_old_appointment_node
+    )
     workflow.add_node("find_slots", find_replacement_slots_node)
     workflow.add_node("prepare_proposal", prepare_rescheduling_proposal_node)
 
@@ -405,7 +405,9 @@ def build_appointment_rescheduling_graph(llm: Optional[BaseChatModel] = None) ->
     ) -> Literal["identify_appointment", "prepare_proposal", "end"]:
         if state.get("intent") == "OUT_OF_SCOPE":
             return "end"
-        if state.get("approval_status") == "APPROVED" or state.get("rescheduling_proposal"):
+        if state.get("approval_status") == "APPROVED" or state.get(
+            "rescheduling_proposal"
+        ):
             return "prepare_proposal"
         return "identify_appointment"
 
@@ -418,7 +420,6 @@ def build_appointment_rescheduling_graph(llm: Optional[BaseChatModel] = None) ->
             "end": END,
         },
     )
-
 
     def route_appointment(
         state: AppointmentReschedulingState,

@@ -232,7 +232,10 @@ async def prepare_cancellation_endpoint(request: PrepareCancellationApiRequest):
 
         proposal = final_state.get("cancellation_proposal")
         err = final_state.get("error")
-        msg = final_state.get("response") or "Cancellation proposal prepared successfully."
+        msg = (
+            final_state.get("response")
+            or "Cancellation proposal prepared successfully."
+        )
 
         return PrepareCancellationApiResponse(
             request_id=proposal.cancellation_request_id if proposal else "N/A",
@@ -351,7 +354,10 @@ async def prepare_rescheduling_endpoint(request: PrepareReschedulingApiRequest):
 
         proposal = final_state.get("rescheduling_proposal")
         err = final_state.get("error")
-        msg = final_state.get("response") or "Rescheduling proposal prepared successfully."
+        msg = (
+            final_state.get("response")
+            or "Rescheduling proposal prepared successfully."
+        )
 
         return PrepareReschedulingApiResponse(
             request_id=proposal.reschedule_request_id if proposal else "N/A",

@@ -68,10 +68,10 @@ def identify_and_authorize_appointment_node(
         user_appts = appt_service.list_patient_appointments(patient_id)
         # Filter active non-cancelled appointments
         active_appts = [
-            a for a in user_appts if str(a.status.value).upper() not in ("CANCELLED", "COMPLETED", "EXPIRED")
+            a
+            for a in user_appts
+            if str(a.status.value).upper() not in ("CANCELLED", "COMPLETED", "EXPIRED")
         ]
-
-
 
         if appointment_id:
             try:
@@ -93,20 +93,18 @@ def identify_and_authorize_appointment_node(
                     "response": f"Appointment cannot be cancelled: {str(ve)}",
                 }
 
-
         if not active_appts:
             return {
                 "error": "No active appointments found for user.",
                 "response": "You currently have no active appointments to cancel.",
             }
 
-
         # Multiple active appointments found
         if len(active_appts) > 1:
             appts_data = [a.model_dump(mode="json") for a in active_appts]
             prompt_list = "\n".join(
                 [
-                    f"{idx+1}. ID: {a.id} — Start: {a.start_time.strftime('%Y-%m-%d %H:%M UTC')}"
+                    f"{idx + 1}. ID: {a.id} — Start: {a.start_time.strftime('%Y-%m-%d %H:%M UTC')}"
                     for idx, a in enumerate(active_appts)
                 ]
             )
@@ -338,7 +336,9 @@ def build_appointment_cancellation_graph(llm: Optional[BaseChatModel] = None) ->
     ) -> Literal["identify_appointment", "prepare_proposal", "end"]:
         if state.get("intent") == "OUT_OF_SCOPE":
             return "end"
-        if state.get("approval_status") == "APPROVED" or state.get("cancellation_proposal"):
+        if state.get("approval_status") == "APPROVED" or state.get(
+            "cancellation_proposal"
+        ):
             return "prepare_proposal"
         return "identify_appointment"
 
@@ -351,7 +351,6 @@ def build_appointment_cancellation_graph(llm: Optional[BaseChatModel] = None) ->
             "end": END,
         },
     )
-
 
     def route_appointment(
         state: AppointmentCancellationState,

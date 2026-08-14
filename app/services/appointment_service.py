@@ -6,7 +6,6 @@ from typing import List, Optional
 
 from app.core.config import settings
 from app.models import AppointmentModel, AppointmentStatus, AvailabilityStatus
-
 from app.repositories import (
     get_appointment_repository,
     get_availability_repository,
@@ -234,4 +233,3 @@ class AppointmentService:
         )
 
         return rescheduled_appt or old_appt
-

@@ -136,4 +136,3 @@ class AppointmentRepository(BaseRepository):
         status: AppointmentStatus = AppointmentStatus.CONFIRMED,
     ) -> Optional[AppointmentModel]:
         raise NotImplementedError
-

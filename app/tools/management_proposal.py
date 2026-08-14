@@ -6,7 +6,7 @@ from typing import Dict, Optional
 
 from langchain_core.tools import tool
 
-from app.models import AppointmentStatus, AvailabilityStatus
+from app.models import AvailabilityStatus
 from app.schemas.booking_agent import ProposalStatus
 from app.schemas.management_agent import (
     CancellationProposal,

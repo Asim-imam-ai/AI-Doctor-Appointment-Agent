@@ -315,4 +315,3 @@ class InMemoryAppointmentRepository(AppointmentRepository):
         )
         self._storage[appointment_id] = updated_appt
         return updated_appt
-

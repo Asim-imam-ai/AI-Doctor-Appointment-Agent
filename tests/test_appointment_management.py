@@ -17,27 +17,6 @@ from app.models import (
     DoctorModel,
     PatientModel,
 )
-from app.repositories import (
-    get_appointment_repository,
-    get_availability_repository,
-    get_doctor_repository,
-    get_patient_repository,
-)
-from app.repositories.in_memory import (
-    InMemoryAppointmentRepository,
-    InMemoryAvailabilityRepository,
-    InMemoryDoctorRepository,
-    InMemoryPatientRepository,
-)
-from app.schemas.management_agent import (
-    CancellationApprovalDecision,
-    CancellationApprovalRequest,
-    PrepareCancellationApiRequest,
-    PrepareReschedulingApiRequest,
-    ReschedulingApprovalDecision,
-    ReschedulingApprovalRequest,
-)
-from app.services import AppointmentService
 
 
 @pytest.fixture(autouse=True)
@@ -89,7 +68,6 @@ def setup_in_memory_repos():
     }
 
 
-
 def test_cancellation_workflow_happy_path(setup_in_memory_repos):
     """Test full cancellation lifecycle: prepare -> approve -> atomic update."""
     patient = setup_in_memory_repos["patient"]
@@ -111,17 +89,19 @@ def test_cancellation_workflow_happy_path(setup_in_memory_repos):
     graph = build_appointment_cancellation_graph()
 
     # 1. Prepare proposal
-    prep_state = graph.invoke({
-        "user_message": "Cancel my appointment",
-        "patient_id": patient.id,
-        "appointment_id": appt.id,
-        "user_timezone": "UTC",
-        "messages": [],
-        "iteration_count": 0,
-        "tool_call_count": 0,
-        "proposal_version": 1,
-        "metadata": {},
-    })
+    prep_state = graph.invoke(
+        {
+            "user_message": "Cancel my appointment",
+            "patient_id": patient.id,
+            "appointment_id": appt.id,
+            "user_timezone": "UTC",
+            "messages": [],
+            "iteration_count": 0,
+            "tool_call_count": 0,
+            "proposal_version": 1,
+            "metadata": {},
+        }
+    )
 
     proposal = prep_state.get("cancellation_proposal")
     assert proposal is not None
@@ -133,16 +113,18 @@ def test_cancellation_workflow_happy_path(setup_in_memory_repos):
     assert unmutated_appt.status == AppointmentStatus.CONFIRMED
 
     # 2. Execute explicit HITL approval
-    approve_state = graph.invoke({
-        "cancellation_proposal": proposal,
-        "approval_status": "APPROVED",
-        "proposal_version": proposal.proposal_version,
-        "patient_id": patient.id,
-        "messages": [],
-        "iteration_count": 0,
-        "tool_call_count": 0,
-        "metadata": {},
-    })
+    approve_state = graph.invoke(
+        {
+            "cancellation_proposal": proposal,
+            "approval_status": "APPROVED",
+            "proposal_version": proposal.proposal_version,
+            "patient_id": patient.id,
+            "messages": [],
+            "iteration_count": 0,
+            "tool_call_count": 0,
+            "metadata": {},
+        }
+    )
 
     result = approve_state.get("cancellation_result")
     assert result is not None
@@ -171,17 +153,19 @@ def test_cancellation_policy_violation(setup_in_memory_repos):
     app_repo.create(appt)
 
     graph = build_appointment_cancellation_graph()
-    prep_state = graph.invoke({
-        "user_message": "Cancel my appointment today",
-        "patient_id": patient.id,
-        "appointment_id": appt.id,
-        "user_timezone": "UTC",
-        "messages": [],
-        "iteration_count": 0,
-        "tool_call_count": 0,
-        "proposal_version": 1,
-        "metadata": {},
-    })
+    prep_state = graph.invoke(
+        {
+            "user_message": "Cancel my appointment today",
+            "patient_id": patient.id,
+            "appointment_id": appt.id,
+            "user_timezone": "UTC",
+            "messages": [],
+            "iteration_count": 0,
+            "tool_call_count": 0,
+            "proposal_version": 1,
+            "metadata": {},
+        }
+    )
 
     assert prep_state.get("cancellation_proposal") is None
     assert "Cancellation window policy violation" in prep_state.get("error", "")
@@ -216,18 +200,20 @@ def test_rescheduling_workflow_happy_path(setup_in_memory_repos):
     graph = build_appointment_rescheduling_graph()
 
     # 1. Prepare proposal
-    prep_state = graph.invoke({
-        "user_message": "Reschedule my appointment",
-        "patient_id": patient.id,
-        "appointment_id": old_appt.id,
-        "new_slot_id": new_slot.id,
-        "user_timezone": "UTC",
-        "messages": [],
-        "iteration_count": 0,
-        "tool_call_count": 0,
-        "proposal_version": 1,
-        "metadata": {},
-    })
+    prep_state = graph.invoke(
+        {
+            "user_message": "Reschedule my appointment",
+            "patient_id": patient.id,
+            "appointment_id": old_appt.id,
+            "new_slot_id": new_slot.id,
+            "user_timezone": "UTC",
+            "messages": [],
+            "iteration_count": 0,
+            "tool_call_count": 0,
+            "proposal_version": 1,
+            "metadata": {},
+        }
+    )
 
     proposal = prep_state.get("rescheduling_proposal")
     assert proposal is not None
@@ -239,16 +225,18 @@ def test_rescheduling_workflow_happy_path(setup_in_memory_repos):
     assert unmutated_appt.start_time == old_appt.start_time
 
     # 2. Approve proposal
-    approve_state = graph.invoke({
-        "rescheduling_proposal": proposal,
-        "approval_status": "APPROVED",
-        "proposal_version": proposal.proposal_version,
-        "patient_id": patient.id,
-        "messages": [],
-        "iteration_count": 0,
-        "tool_call_count": 0,
-        "metadata": {},
-    })
+    approve_state = graph.invoke(
+        {
+            "rescheduling_proposal": proposal,
+            "approval_status": "APPROVED",
+            "proposal_version": proposal.proposal_version,
+            "patient_id": patient.id,
+            "messages": [],
+            "iteration_count": 0,
+            "tool_call_count": 0,
+            "metadata": {},
+        }
+    )
 
     result = approve_state.get("rescheduling_result")
     assert result is not None
@@ -285,19 +273,20 @@ def test_rescheduling_unauthorized_user(setup_in_memory_repos):
     )
     app_repo.create(appt)
 
-
     graph = build_appointment_rescheduling_graph()
-    prep_state = graph.invoke({
-        "user_message": "Reschedule appointment",
-        "patient_id": attacker_id,
-        "appointment_id": appt.id,
-        "user_timezone": "UTC",
-        "messages": [],
-        "iteration_count": 0,
-        "tool_call_count": 0,
-        "proposal_version": 1,
-        "metadata": {},
-    })
+    prep_state = graph.invoke(
+        {
+            "user_message": "Reschedule appointment",
+            "patient_id": attacker_id,
+            "appointment_id": appt.id,
+            "user_timezone": "UTC",
+            "messages": [],
+            "iteration_count": 0,
+            "tool_call_count": 0,
+            "proposal_version": 1,
+            "metadata": {},
+        }
+    )
 
     assert prep_state.get("rescheduling_proposal") is None
     assert "Unauthorized" in prep_state.get("error", "")
