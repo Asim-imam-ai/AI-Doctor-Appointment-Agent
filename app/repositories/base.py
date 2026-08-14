@@ -127,3 +127,13 @@ class AppointmentRepository(BaseRepository):
         self, appointment_id: uuid.UUID, status: AppointmentStatus
     ) -> Optional[AppointmentModel]:
         raise NotImplementedError
+
+    def reschedule(
+        self,
+        appointment_id: uuid.UUID,
+        new_start_time: datetime,
+        new_end_time: datetime,
+        status: AppointmentStatus = AppointmentStatus.CONFIRMED,
+    ) -> Optional[AppointmentModel]:
+        raise NotImplementedError
+
