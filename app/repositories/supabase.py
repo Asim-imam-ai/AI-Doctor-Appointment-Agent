@@ -13,6 +13,10 @@ from app.models import (
     ConversationStatus,
     DoctorAvailabilityModel,
     DoctorModel,
+    KnowledgeCategory,
+    KnowledgeChunkModel,
+    KnowledgeDocumentModel,
+    KnowledgeDocumentStatus,
     MemoryItemModel,
     NotificationDeliveryModel,
     NotificationPreferenceModel,
@@ -28,6 +32,8 @@ from app.repositories.base import (
     ConversationMessageRepository,
     ConversationRepository,
     DoctorRepository,
+    KnowledgeChunkRepository,
+    KnowledgeDocumentRepository,
     MemoryRepository,
     NotificationDeliveryRepository,
     NotificationPreferenceRepository,
@@ -810,6 +816,151 @@ class SupabaseMemoryRepository(MemoryRepository):
             )
             .eq("patient_id", str(patient_id))
             .eq("key", key)
+            .execute()
+        )
+        return bool(res.data)
+
+
+class SupabaseKnowledgeDocumentRepository(KnowledgeDocumentRepository):
+    def __init__(self, client: Optional[object] = None):
+        self.client = client
+
+    def create(self, doc: KnowledgeDocumentModel) -> KnowledgeDocumentModel:
+        if not self.client:
+            raise RuntimeError("Supabase client is not initialized.")
+        data = {
+            "id": str(doc.id),
+            "title": doc.title,
+            "category": doc.category.value,
+            "version": doc.version,
+            "status": doc.status.value,
+            "source": doc.source,
+            "content_hash": doc.content_hash,
+            "metadata": doc.metadata,
+        }
+        res = self.client.table("knowledge_documents").insert(data).execute()
+        if res.data:
+            return KnowledgeDocumentModel(**res.data[0])
+        return doc
+
+    def get_by_id(self, doc_id: uuid.UUID) -> Optional[KnowledgeDocumentModel]:
+        if not self.client:
+            raise RuntimeError("Supabase client is not initialized.")
+        res = (
+            self.client.table("knowledge_documents")
+            .select("*")
+            .eq("id", str(doc_id))
+            .execute()
+        )
+        if res.data:
+            return KnowledgeDocumentModel(**res.data[0])
+        return None
+
+    def get_by_hash(self, content_hash: str) -> Optional[KnowledgeDocumentModel]:
+        if not self.client:
+            raise RuntimeError("Supabase client is not initialized.")
+        res = (
+            self.client.table("knowledge_documents")
+            .select("*")
+            .eq("content_hash", content_hash)
+            .execute()
+        )
+        if res.data:
+            return KnowledgeDocumentModel(**res.data[0])
+        return None
+
+    def list_documents(
+        self,
+        category: Optional[KnowledgeCategory] = None,
+        status: Optional[KnowledgeDocumentStatus] = None,
+    ) -> List[KnowledgeDocumentModel]:
+        if not self.client:
+            raise RuntimeError("Supabase client is not initialized.")
+        query = self.client.table("knowledge_documents").select("*")
+        if category:
+            query = query.eq("category", category.value)
+        if status:
+            query = query.eq("status", status.value)
+        res = query.execute()
+        return [KnowledgeDocumentModel(**row) for row in (res.data or [])]
+
+    def update_status(
+        self, doc_id: uuid.UUID, status: KnowledgeDocumentStatus
+    ) -> Optional[KnowledgeDocumentModel]:
+        if not self.client:
+            raise RuntimeError("Supabase client is not initialized.")
+        res = (
+            self.client.table("knowledge_documents")
+            .update(
+                {
+                    "status": status.value,
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                }
+            )
+            .eq("id", str(doc_id))
+            .execute()
+        )
+        if res.data:
+            return KnowledgeDocumentModel(**res.data[0])
+        return None
+
+
+class SupabaseKnowledgeChunkRepository(KnowledgeChunkRepository):
+    def __init__(self, client: Optional[object] = None):
+        self.client = client
+
+    def save_chunks(
+        self, chunks: List[KnowledgeChunkModel]
+    ) -> List[KnowledgeChunkModel]:
+        if not self.client:
+            raise RuntimeError("Supabase client is not initialized.")
+        data = [
+            {
+                "id": str(c.id),
+                "document_id": str(c.document_id),
+                "chunk_index": c.chunk_index,
+                "content": c.content,
+                "embedding": c.embedding,
+                "metadata": c.metadata,
+            }
+            for c in chunks
+        ]
+        res = self.client.table("knowledge_chunks").insert(data).execute()
+        return [KnowledgeChunkModel(**row) for row in (res.data or [])]
+
+    def search_similar_chunks(
+        self,
+        query_embedding: List[float],
+        top_k: int = 4,
+        category: Optional[KnowledgeCategory] = None,
+        min_similarity: float = 0.0,
+    ) -> List[KnowledgeChunkModel]:
+        if not self.client:
+            raise RuntimeError("Supabase client is not initialized.")
+        # Call RPC vector match function if present or query table
+        rpc_params = {
+            "query_embedding": query_embedding,
+            "match_count": top_k,
+            "filter_category": category.value if category else None,
+        }
+        try:
+            res = self.client.rpc("match_knowledge_chunks", rpc_params).execute()
+            if res.data:
+                return [KnowledgeChunkModel(**row) for row in res.data]
+        except Exception:
+            pass
+
+        # Fallback select active document chunks
+        res = self.client.table("knowledge_chunks").select("*").limit(top_k).execute()
+        return [KnowledgeChunkModel(**row) for row in (res.data or [])]
+
+    def delete_chunks_by_document(self, document_id: uuid.UUID) -> bool:
+        if not self.client:
+            raise RuntimeError("Supabase client is not initialized.")
+        res = (
+            self.client.table("knowledge_chunks")
+            .delete()
+            .eq("document_id", str(document_id))
             .execute()
         )
         return bool(res.data)

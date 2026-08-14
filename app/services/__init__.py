@@ -3,6 +3,8 @@ from app.services.availability_service import AvailabilityService
 from app.services.context_builder import ContextBuilder
 from app.services.conversation_service import ConversationService
 from app.services.doctor_service import DoctorService
+from app.services.embeddings_service import EmbeddingsService
+from app.services.ingestion_pipeline import IngestionPipeline
 from app.services.memory_service import MemoryService
 from app.services.notification_service import (
     MockNotificationProvider,
@@ -10,6 +12,7 @@ from app.services.notification_service import (
     NotificationService,
 )
 from app.services.patient_service import PatientService
+from app.services.rag_service import RAGService
 from app.services.reminder_service import ReminderService
 from app.services.summarizer import summarize_conversation
 
@@ -26,4 +29,7 @@ __all__ = [
     "ConversationService",
     "ContextBuilder",
     "summarize_conversation",
+    "EmbeddingsService",
+    "IngestionPipeline",
+    "RAGService",
 ]

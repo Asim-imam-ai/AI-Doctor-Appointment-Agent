@@ -1,6 +1,7 @@
 """Base and interface definitions for repository layer."""
 
 import uuid
+from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, List, Optional
 
@@ -12,6 +13,10 @@ from app.models import (
     ConversationModel,
     DoctorAvailabilityModel,
     DoctorModel,
+    KnowledgeCategory,
+    KnowledgeChunkModel,
+    KnowledgeDocumentModel,
+    KnowledgeDocumentStatus,
     MemoryItemModel,
     NotificationDeliveryModel,
     NotificationPreferenceModel,
@@ -252,25 +257,79 @@ class ConversationMessageRepository(BaseRepository):
         raise NotImplementedError
 
 
-class MemoryRepository(BaseRepository):
-    def create_or_update(self, memory: "MemoryItemModel") -> "MemoryItemModel":
+class MemoryRepository(ABC):
+    @abstractmethod
+    def create_or_update(self, item: MemoryItemModel) -> MemoryItemModel:
         raise NotImplementedError
 
-    def get_by_id(self, memory_id: uuid.UUID) -> Optional["MemoryItemModel"]:
+    @abstractmethod
+    def get_by_id(self, memory_id: uuid.UUID) -> Optional[MemoryItemModel]:
         raise NotImplementedError
 
+    @abstractmethod
+    def get_by_key(self, patient_id: uuid.UUID, key: str) -> Optional[MemoryItemModel]:
+        raise NotImplementedError
+
+    @abstractmethod
     def list_for_patient(
         self, patient_id: uuid.UUID, active_only: bool = True
-    ) -> List["MemoryItemModel"]:
+    ) -> List[MemoryItemModel]:
         raise NotImplementedError
 
-    def get_by_key(
-        self, patient_id: uuid.UUID, key: str
-    ) -> Optional["MemoryItemModel"]:
-        raise NotImplementedError
-
+    @abstractmethod
     def delete_memory(self, memory_id: uuid.UUID) -> bool:
         raise NotImplementedError
 
+    @abstractmethod
     def delete_by_key(self, patient_id: uuid.UUID, key: str) -> bool:
+        raise NotImplementedError
+
+
+class KnowledgeDocumentRepository(ABC):
+    @abstractmethod
+    def create(self, doc: KnowledgeDocumentModel) -> KnowledgeDocumentModel:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_by_id(self, doc_id: uuid.UUID) -> Optional[KnowledgeDocumentModel]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_by_hash(self, content_hash: str) -> Optional[KnowledgeDocumentModel]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_documents(
+        self,
+        category: Optional[KnowledgeCategory] = None,
+        status: Optional[KnowledgeDocumentStatus] = None,
+    ) -> List[KnowledgeDocumentModel]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def update_status(
+        self, doc_id: uuid.UUID, status: KnowledgeDocumentStatus
+    ) -> Optional[KnowledgeDocumentModel]:
+        raise NotImplementedError
+
+
+class KnowledgeChunkRepository(ABC):
+    @abstractmethod
+    def save_chunks(
+        self, chunks: List[KnowledgeChunkModel]
+    ) -> List[KnowledgeChunkModel]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def search_similar_chunks(
+        self,
+        query_embedding: List[float],
+        top_k: int = 4,
+        category: Optional[KnowledgeCategory] = None,
+        min_similarity: float = 0.0,
+    ) -> List[KnowledgeChunkModel]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def delete_chunks_by_document(self, document_id: uuid.UUID) -> bool:
         raise NotImplementedError

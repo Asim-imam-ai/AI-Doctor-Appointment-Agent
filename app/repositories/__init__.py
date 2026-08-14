@@ -9,6 +9,8 @@ from app.repositories.base import (
     ConversationMessageRepository,
     ConversationRepository,
     DoctorRepository,
+    KnowledgeChunkRepository,
+    KnowledgeDocumentRepository,
     MemoryRepository,
     NotificationDeliveryRepository,
     NotificationPreferenceRepository,
@@ -27,6 +29,8 @@ from app.repositories.in_memory import (
     InMemorySpecialtyRepository,
     _in_memory_conversation_message_repo,
     _in_memory_conversation_repo,
+    _in_memory_knowledge_chunk_repo,
+    _in_memory_knowledge_doc_repo,
     _in_memory_memory_repo,
 )
 from app.repositories.in_memory import (
@@ -34,6 +38,12 @@ from app.repositories.in_memory import (
 )
 from app.repositories.in_memory import (
     InMemoryConversationRepository as InMemoryConversationRepository,
+)
+from app.repositories.in_memory import (
+    InMemoryKnowledgeChunkRepository as InMemoryKnowledgeChunkRepository,
+)
+from app.repositories.in_memory import (
+    InMemoryKnowledgeDocumentRepository as InMemoryKnowledgeDocumentRepository,
 )
 from app.repositories.in_memory import (
     InMemoryMemoryRepository as InMemoryMemoryRepository,
@@ -44,6 +54,8 @@ from app.repositories.supabase import (
     SupabaseConversationMessageRepository,
     SupabaseConversationRepository,
     SupabaseDoctorRepository,
+    SupabaseKnowledgeChunkRepository,
+    SupabaseKnowledgeDocumentRepository,
     SupabaseMemoryRepository,
     SupabaseNotificationDeliveryRepository,
     SupabaseNotificationPreferenceRepository,
@@ -157,3 +169,21 @@ def get_memory_repository(
     if supabase_client is not None:
         return SupabaseMemoryRepository(supabase_client)
     return _in_memory_memory_repo
+
+
+def get_knowledge_document_repository(
+    client: Optional[object] = None,
+) -> KnowledgeDocumentRepository:
+    supabase_client = client or get_supabase_client()
+    if supabase_client is not None:
+        return SupabaseKnowledgeDocumentRepository(supabase_client)
+    return _in_memory_knowledge_doc_repo
+
+
+def get_knowledge_chunk_repository(
+    client: Optional[object] = None,
+) -> KnowledgeChunkRepository:
+    supabase_client = client or get_supabase_client()
+    if supabase_client is not None:
+        return SupabaseKnowledgeChunkRepository(supabase_client)
+    return _in_memory_knowledge_chunk_repo

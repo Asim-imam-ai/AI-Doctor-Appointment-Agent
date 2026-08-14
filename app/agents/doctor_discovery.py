@@ -53,8 +53,27 @@ def classify_intent_node(state: DoctorDiscoveryState) -> Dict[str, Any]:
             "response": decision.user_message,
         }
 
-    # Check for booking/cancellation/rescheduling request
+    # Check for policy/knowledge questions
     lower_msg = msg.lower()
+    policy_keywords = [
+        "policy",
+        "hours",
+        "cancellation rule",
+        "booking rule",
+        "faq",
+        "preparation",
+    ]
+    if any(kw in lower_msg for kw in policy_keywords):
+        from app.services.rag_service import RAGService
+
+        rag = RAGService()
+        result = rag.answer_query(msg)
+        return {
+            "intent": "POLICY_QUESTION",
+            "response": result.answer,
+        }
+
+    # Check for booking/cancellation/rescheduling request
     if any(kw in lower_msg for kw in UNSUPPORTED_APPOINTMENT_KEYWORDS):
         logger.info("Classified intent as UNSUPPORTED (appointment mutation requested)")
         return {
@@ -247,6 +266,7 @@ def build_doctor_discovery_graph(llm: Optional[BaseChatModel] = None) -> Any:
             "UNSUPPORTED",
             "PROMPT_INJECTION",
             "INVALID_INPUT",
+            "POLICY_QUESTION",
         ):
             return "end"
         return "agent"

@@ -230,3 +230,48 @@ class MemoryItemModel(BaseModel):
     expires_at: Optional[datetime] = None
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
+
+
+class KnowledgeCategory(str, Enum):
+    APPOINTMENT_POLICY = "APPOINTMENT_POLICY"
+    BOOKING_POLICY = "BOOKING_POLICY"
+    CANCELLATION_POLICY = "CANCELLATION_POLICY"
+    RESCHEDULING_POLICY = "RESCHEDULING_POLICY"
+    CLINIC_INFORMATION = "CLINIC_INFORMATION"
+    DEPARTMENT_INFORMATION = "DEPARTMENT_INFORMATION"
+    SPECIALTY_INFORMATION = "SPECIALTY_INFORMATION"
+    PREPARATION_INFORMATION = "PREPARATION_INFORMATION"
+    FAQ = "FAQ"
+
+
+class KnowledgeDocumentStatus(str, Enum):
+    ACTIVE = "ACTIVE"
+    INACTIVE = "INACTIVE"
+    ARCHIVED = "ARCHIVED"
+
+
+class KnowledgeDocumentModel(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
+    title: str = Field(..., min_length=1, max_length=255)
+    category: KnowledgeCategory
+    version: str = Field(default="1.0", max_length=50)
+    status: KnowledgeDocumentStatus = KnowledgeDocumentStatus.ACTIVE
+    source: str = Field(..., max_length=255)
+    content_hash: str = Field(..., max_length=64)
+    metadata: dict = Field(default_factory=dict)
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+
+
+class KnowledgeChunkModel(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
+    document_id: uuid.UUID
+    chunk_index: int = Field(..., ge=0)
+    content: str = Field(..., min_length=1)
+    embedding: Optional[list[float]] = None
+    metadata: dict = Field(default_factory=dict)
+    created_at: datetime = Field(default_factory=datetime.now)
