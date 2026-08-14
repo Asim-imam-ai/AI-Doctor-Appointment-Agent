@@ -156,7 +156,6 @@ class NotificationPreferenceModel(BaseModel):
     in_app_enabled: bool = True
     timezone: str = "UTC"
     created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
 
 
 class NotificationDeliveryModel(BaseModel):
@@ -172,5 +171,62 @@ class NotificationDeliveryModel(BaseModel):
     status: NotificationStatus = NotificationStatus.PENDING
     provider_response_id: Optional[str] = None
     error_message: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+
+
+class ConversationStatus(str, Enum):
+    ACTIVE = "ACTIVE"
+    ARCHIVED = "ARCHIVED"
+    DELETED = "DELETED"
+
+
+class MemoryType(str, Enum):
+    PREFERRED_SPECIALTY = "PREFERRED_SPECIALTY"
+    PREFERRED_DOCTOR = "PREFERRED_DOCTOR"
+    PREFERRED_TIME_RANGE = "PREFERRED_TIME_RANGE"
+    TIMEZONE = "TIMEZONE"
+
+
+class MemorySource(str, Enum):
+    EXPLICIT_USER = "EXPLICIT_USER"
+    SYSTEM_INFERRED = "SYSTEM_INFERRED"
+
+
+class ConversationModel(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
+    patient_id: uuid.UUID
+    title: str = Field(default="New Conversation", max_length=255)
+    status: ConversationStatus = ConversationStatus.ACTIVE
+    summary: Optional[str] = None
+    last_message_at: datetime = Field(default_factory=datetime.now)
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+
+
+class ConversationMessageModel(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
+    conversation_id: uuid.UUID
+    role: str = Field(..., max_length=50)  # user, assistant, system, tool
+    content: str = Field(..., max_length=4000)
+    metadata: Optional[dict] = Field(default_factory=dict)
+    created_at: datetime = Field(default_factory=datetime.now)
+
+
+class MemoryItemModel(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
+    patient_id: uuid.UUID
+    memory_type: MemoryType
+    key: str = Field(..., min_length=1, max_length=100)
+    value: str = Field(..., min_length=1, max_length=500)
+    source: MemorySource = MemorySource.EXPLICIT_USER
+    is_active: bool = True
+    expires_at: Optional[datetime] = None
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)

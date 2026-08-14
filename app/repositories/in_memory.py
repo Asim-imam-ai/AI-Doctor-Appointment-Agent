@@ -8,8 +8,12 @@ from app.models import (
     AppointmentModel,
     AppointmentStatus,
     AvailabilityStatus,
+    ConversationMessageModel,
+    ConversationModel,
+    ConversationStatus,
     DoctorAvailabilityModel,
     DoctorModel,
+    MemoryItemModel,
     NotificationDeliveryModel,
     NotificationPreferenceModel,
     NotificationStatus,
@@ -21,7 +25,10 @@ from app.models import (
 from app.repositories.base import (
     AppointmentRepository,
     AvailabilityRepository,
+    ConversationMessageRepository,
+    ConversationRepository,
     DoctorRepository,
+    MemoryRepository,
     NotificationDeliveryRepository,
     NotificationPreferenceRepository,
     PatientRepository,
@@ -508,3 +515,162 @@ class InMemoryNotificationDeliveryRepository(NotificationDeliveryRepository):
         updated = d.model_copy(update=updates)
         self._storage[delivery_id] = updated
         return updated
+
+
+class InMemoryConversationRepository(ConversationRepository):
+    def __init__(self):
+        super().__init__()
+        self._storage: Dict[uuid.UUID, ConversationModel] = {}
+
+    def create(self, conversation: ConversationModel) -> ConversationModel:
+        self._storage[conversation.id] = conversation
+        return conversation
+
+    def get_by_id(self, conversation_id: uuid.UUID) -> Optional[ConversationModel]:
+        return self._storage.get(conversation_id)
+
+    def list_for_patient(
+        self, patient_id: uuid.UUID, limit: int = 50
+    ) -> List[ConversationModel]:
+        convs = [
+            c
+            for c in self._storage.values()
+            if c.patient_id == patient_id and c.status != ConversationStatus.DELETED
+        ]
+        convs.sort(key=lambda x: x.last_message_at, reverse=True)
+        return convs[:limit]
+
+    def update_summary(
+        self, conversation_id: uuid.UUID, summary: str
+    ) -> Optional[ConversationModel]:
+        c = self._storage.get(conversation_id)
+        if not c:
+            return None
+        updated = c.model_copy(
+            update={"summary": summary, "updated_at": datetime.now(timezone.utc)}
+        )
+        self._storage[conversation_id] = updated
+        return updated
+
+    def update_status(
+        self, conversation_id: uuid.UUID, status: ConversationStatus
+    ) -> Optional[ConversationModel]:
+        c = self._storage.get(conversation_id)
+        if not c:
+            return None
+        updated = c.model_copy(
+            update={"status": status, "updated_at": datetime.now(timezone.utc)}
+        )
+        self._storage[conversation_id] = updated
+        return updated
+
+    def delete_conversation(self, conversation_id: uuid.UUID) -> bool:
+        c = self._storage.get(conversation_id)
+        if not c:
+            return False
+        self.update_status(conversation_id, ConversationStatus.DELETED)
+        return True
+
+
+class InMemoryConversationMessageRepository(ConversationMessageRepository):
+    def __init__(self):
+        super().__init__()
+        self._storage: Dict[uuid.UUID, ConversationMessageModel] = {}
+
+    def create(self, message: ConversationMessageModel) -> ConversationMessageModel:
+        self._storage[message.id] = message
+        return message
+
+    def list_by_conversation(
+        self, conversation_id: uuid.UUID, limit: int = 100
+    ) -> List[ConversationMessageModel]:
+        msgs = [
+            m for m in self._storage.values() if m.conversation_id == conversation_id
+        ]
+        msgs.sort(key=lambda x: x.created_at)
+        return msgs[:limit]
+
+    def delete_by_conversation(self, conversation_id: uuid.UUID) -> int:
+        count = 0
+        for m_id, m in list(self._storage.items()):
+            if m.conversation_id == conversation_id:
+                del self._storage[m_id]
+                count += 1
+        return count
+
+
+class InMemoryMemoryRepository(MemoryRepository):
+    def __init__(self):
+        super().__init__()
+        self._storage: Dict[uuid.UUID, MemoryItemModel] = {}
+
+    def create_or_update(self, memory: MemoryItemModel) -> MemoryItemModel:
+        # Check existing matching patient_id + key
+        existing = self.get_by_key(memory.patient_id, memory.key)
+        if existing:
+            updated = existing.model_copy(
+                update={
+                    "value": memory.value,
+                    "memory_type": memory.memory_type,
+                    "source": memory.source,
+                    "is_active": memory.is_active,
+                    "expires_at": memory.expires_at,
+                    "updated_at": datetime.now(timezone.utc),
+                }
+            )
+            self._storage[existing.id] = updated
+            return updated
+        else:
+            self._storage[memory.id] = memory
+            return memory
+
+    def get_by_id(self, memory_id: uuid.UUID) -> Optional[MemoryItemModel]:
+        return self._storage.get(memory_id)
+
+    def list_for_patient(
+        self, patient_id: uuid.UUID, active_only: bool = True
+    ) -> List[MemoryItemModel]:
+        now_utc = datetime.now(timezone.utc)
+        items = []
+        for m in self._storage.values():
+            if m.patient_id != patient_id:
+                continue
+            if active_only and not m.is_active:
+                continue
+            if (
+                active_only
+                and m.expires_at is not None
+                and m.expires_at.tzinfo is not None
+                and m.expires_at < now_utc
+            ):
+                continue
+            items.append(m)
+        return items
+
+    def get_by_key(self, patient_id: uuid.UUID, key: str) -> Optional[MemoryItemModel]:
+        for m in self._storage.values():
+            if m.patient_id == patient_id and m.key == key and m.is_active:
+                return m
+        return None
+
+    def delete_memory(self, memory_id: uuid.UUID) -> bool:
+        m = self._storage.get(memory_id)
+        if not m:
+            return False
+        updated = m.model_copy(
+            update={"is_active": False, "updated_at": datetime.now(timezone.utc)}
+        )
+        self._storage[memory_id] = updated
+        return True
+
+    def delete_by_key(self, patient_id: uuid.UUID, key: str) -> bool:
+        m = self.get_by_key(patient_id, key)
+        if not m:
+            return False
+        return self.delete_memory(m.id)
+
+
+# Global in-memory singleton repositories
+_in_memory_conversation_repo = InMemoryConversationRepository()
+_in_memory_conversation_message_repo = InMemoryConversationMessageRepository()
+_in_memory_memory_repo = InMemoryMemoryRepository()
