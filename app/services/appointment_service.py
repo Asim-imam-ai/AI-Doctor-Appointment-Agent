@@ -1,5 +1,4 @@
-"""Appointment business logic service."""
-
+import logging
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
@@ -18,6 +17,8 @@ from app.repositories.base import (
     DoctorRepository,
     PatientRepository,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class AppointmentService:
@@ -126,7 +127,20 @@ class AppointmentService:
         confirmed_appt = self.appointment_repo.update_status(
             appt.id, AppointmentStatus.CONFIRMED
         )
-        return confirmed_appt or appt
+        final_appt = confirmed_appt or appt
+
+        # 5. Schedule reminders (non-blocking failure protection)
+        try:
+            from app.services.reminder_service import ReminderService
+
+            r_service = ReminderService()
+            r_service.schedule_reminders_for_appointment(final_appt)
+        except Exception as e:
+            logger.warning(
+                f"Failed to schedule reminders for appointment '{final_appt.id}': {e}"
+            )
+
+        return final_appt
 
     def check_cancellation_eligibility(
         self, appointment_id: uuid.UUID, patient_id: uuid.UUID
@@ -167,7 +181,20 @@ class AppointmentService:
         updated = self.appointment_repo.update_status(
             appt.id, AppointmentStatus.CANCELLED
         )
-        return updated or appt
+        final_appt = updated or appt
+
+        # Invalidate future reminders
+        try:
+            from app.services.reminder_service import ReminderService
+
+            r_service = ReminderService()
+            r_service.invalidate_reminders_for_appointment(appointment_id)
+        except Exception as e:
+            logger.warning(
+                f"Failed to invalidate reminders for appointment '{appointment_id}': {e}"
+            )
+
+        return final_appt
 
     def check_reschedule_eligibility(
         self, appointment_id: uuid.UUID, patient_id: uuid.UUID
@@ -231,5 +258,18 @@ class AppointmentService:
             new_end_time=slot.end_time,
             status=AppointmentStatus.CONFIRMED,
         )
+        final_appt = rescheduled_appt or old_appt
 
-        return rescheduled_appt or old_appt
+        # 5. Invalidate old reminders & schedule new reminders
+        try:
+            from app.services.reminder_service import ReminderService
+
+            r_service = ReminderService()
+            r_service.invalidate_reminders_for_appointment(appointment_id)
+            r_service.schedule_reminders_for_appointment(final_appt)
+        except Exception as e:
+            logger.warning(
+                f"Failed to update reminders after rescheduling for appointment '{appointment_id}': {e}"
+            )
+
+        return final_appt

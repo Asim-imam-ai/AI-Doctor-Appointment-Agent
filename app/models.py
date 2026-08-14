@@ -94,3 +94,83 @@ class AppointmentModel(BaseModel):
     reason: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
+
+
+class ReminderType(str, Enum):
+    TWENTY_FOUR_HOURS_BEFORE = "24_HOURS_BEFORE"
+    TWO_HOURS_BEFORE = "2_HOURS_BEFORE"
+
+
+class ReminderStatus(str, Enum):
+    PENDING = "PENDING"
+    PROCESSING = "PROCESSING"
+    SENT = "SENT"
+    FAILED = "FAILED"
+    CANCELLED = "CANCELLED"
+    SKIPPED = "SKIPPED"
+
+
+class NotificationChannel(str, Enum):
+    EMAIL = "EMAIL"
+    SMS = "SMS"
+    IN_APP = "IN_APP"
+
+
+class NotificationStatus(str, Enum):
+    PENDING = "PENDING"
+    SENDING = "SENDING"
+    SENT = "SENT"
+    FAILED = "FAILED"
+    RETRYING = "RETRYING"
+    CANCELLED = "CANCELLED"
+
+
+class ReminderModel(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
+    appointment_id: uuid.UUID
+    patient_id: uuid.UUID
+    reminder_type: ReminderType
+    scheduled_at: datetime
+    status: ReminderStatus = ReminderStatus.PENDING
+    timezone: str = "UTC"
+    idempotency_key: str
+    sent_at: Optional[datetime] = None
+    cancelled_at: Optional[datetime] = None
+    retry_count: int = 0
+    max_retries: int = 3
+    error_message: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+
+
+class NotificationPreferenceModel(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
+    patient_id: uuid.UUID
+    reminders_enabled: bool = True
+    email_enabled: bool = True
+    sms_enabled: bool = False
+    in_app_enabled: bool = True
+    timezone: str = "UTC"
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+
+
+class NotificationDeliveryModel(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
+    reminder_id: uuid.UUID
+    patient_id: uuid.UUID
+    channel: NotificationChannel = NotificationChannel.EMAIL
+    recipient: str
+    subject: str
+    body: str
+    status: NotificationStatus = NotificationStatus.PENDING
+    provider_response_id: Optional[str] = None
+    error_message: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)

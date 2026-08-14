@@ -82,3 +82,20 @@ The PostgreSQL database consists of 6 core domain tables:
 2. **Authoritative State:** Database/service state is authoritative. Only a successful backend transaction establishes `CONFIRMED` appointment status.
 3. **Supabase Security:** Service role keys remain strictly server-side. Application logic routes through repository abstractions.
 4. **Test Database Strategy:** Repositories implement both `SupabaseRepository` (production/staging) and `InMemoryRepository` (deterministic testing/CI without external Supabase dependencies).
+
+## Phase 7 — Appointment Reminders & Notifications Architecture
+
+### 1. Deterministic Background Execution (No LLM in Loop)
+- **Zero-LLM Responsibility:** The LLM is NEVER responsible for reminder eligibility, scheduled check intervals, checking appointment status, or directly executing notification dispatches. All reminder operations run via deterministic code (`ReminderService`, `NotificationService`).
+- **Trigger Lifecycle:** Successful appointment booking (`atomic_create_appointment_and_update_slot`) automatically triggers 24-hour and 2-hour reminder generation.
+- **Cascading Invalidation:** Appointment cancellation (`cancel_appointment`) or rescheduling (`atomic_reschedule_appointment`) immediately invalidates pending reminders (`CANCELLED` or re-computed schedules).
+
+### 2. Provider Abstraction & Safe Delivery Pipeline
+- **Notification Provider Interface:** Pluggable `NotificationProvider` interface with `MockNotificationProvider` for local testing/CI and email adapters.
+- **Audit Trails & Retries:** Every notification attempt records a `NotificationDeliveryModel` entry (`SENDING`, `SENT`, `FAILED`). Failed dispatches feature bounded transient retries (max retries = 3).
+- **Timezone Awareness & Preferences:** User notification preferences (`NotificationPreferenceModel`) govern channel toggles (Email, SMS, In-App) and user IANA timezones.
+
+### 3. Worker Safety & Race Condition Protection
+- **Idempotency Keys:** Unique idempotency keys (`appointment_id:reminder_type:scheduled_at`) prevent duplicate reminder schedules.
+- **Atomic Claiming:** Multi-worker concurrency safety via atomic status transitions (`PENDING` → `PROCESSING`).
+- **Revalidation Guardrails:** Prior to dispatch, reminders revalidate appointment existence, patient ownership, active status (`CONFIRMED`), and future time bounds. Stale/cancelled appointments transition to `SKIPPED`.

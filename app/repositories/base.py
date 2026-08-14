@@ -10,7 +10,12 @@ from app.models import (
     AvailabilityStatus,
     DoctorAvailabilityModel,
     DoctorModel,
+    NotificationDeliveryModel,
+    NotificationPreferenceModel,
+    NotificationStatus,
     PatientModel,
+    ReminderModel,
+    ReminderStatus,
     SpecialtyModel,
 )
 
@@ -135,4 +140,71 @@ class AppointmentRepository(BaseRepository):
         new_end_time: datetime,
         status: AppointmentStatus = AppointmentStatus.CONFIRMED,
     ) -> Optional[AppointmentModel]:
+        raise NotImplementedError
+
+
+class ReminderRepository(BaseRepository):
+    def create(self, reminder: ReminderModel) -> ReminderModel:
+        raise NotImplementedError
+
+    def get_by_id(self, reminder_id: uuid.UUID) -> Optional[ReminderModel]:
+        raise NotImplementedError
+
+    def get_by_idempotency_key(self, idempotency_key: str) -> Optional[ReminderModel]:
+        raise NotImplementedError
+
+    def list_for_appointment(self, appointment_id: uuid.UUID) -> List[ReminderModel]:
+        raise NotImplementedError
+
+    def list_for_patient(self, patient_id: uuid.UUID) -> List[ReminderModel]:
+        raise NotImplementedError
+
+    def find_due_reminders(
+        self, as_of_time: Optional[datetime] = None, limit: int = 50
+    ) -> List[ReminderModel]:
+        raise NotImplementedError
+
+    def claim_reminder(self, reminder_id: uuid.UUID) -> Optional[ReminderModel]:
+        raise NotImplementedError
+
+    def update_status(
+        self,
+        reminder_id: uuid.UUID,
+        status: ReminderStatus,
+        error_message: Optional[str] = None,
+        sent_at: Optional[datetime] = None,
+        cancelled_at: Optional[datetime] = None,
+    ) -> Optional[ReminderModel]:
+        raise NotImplementedError
+
+    def cancel_for_appointment(self, appointment_id: uuid.UUID) -> int:
+        raise NotImplementedError
+
+
+class NotificationPreferenceRepository(BaseRepository):
+    def get_by_patient_id(
+        self, patient_id: uuid.UUID
+    ) -> Optional[NotificationPreferenceModel]:
+        raise NotImplementedError
+
+    def create_or_update(
+        self, preference: NotificationPreferenceModel
+    ) -> NotificationPreferenceModel:
+        raise NotImplementedError
+
+
+class NotificationDeliveryRepository(BaseRepository):
+    def create(self, delivery: NotificationDeliveryModel) -> NotificationDeliveryModel:
+        raise NotImplementedError
+
+    def get_by_id(self, delivery_id: uuid.UUID) -> Optional[NotificationDeliveryModel]:
+        raise NotImplementedError
+
+    def update_status(
+        self,
+        delivery_id: uuid.UUID,
+        status: NotificationStatus,
+        provider_response_id: Optional[str] = None,
+        error_message: Optional[str] = None,
+    ) -> Optional[NotificationDeliveryModel]:
         raise NotImplementedError

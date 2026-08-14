@@ -28,6 +28,14 @@ from app.schemas.management_agent import (
     ReschedulingResult,
 )
 from app.schemas.patient import PatientBase, PatientCreate, PatientResponse
+from app.schemas.reminder import (
+    ListRemindersResponse,
+    NotificationPreferenceResponse,
+    ProcessRemindersRequest,
+    ProcessRemindersResponse,
+    ReminderResponse,
+    UpdateNotificationPreferenceRequest,
+)
 
 __all__ = [
     "HealthCheckResponse",
@@ -62,4 +70,10 @@ __all__ = [
     "PrepareReschedulingApiRequest",
     "PrepareReschedulingApiResponse",
     "ApproveReschedulingApiResponse",
+    "NotificationPreferenceResponse",
+    "UpdateNotificationPreferenceRequest",
+    "ReminderResponse",
+    "ListRemindersResponse",
+    "ProcessRemindersRequest",
+    "ProcessRemindersResponse",
 ]
