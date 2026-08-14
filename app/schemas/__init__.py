@@ -11,6 +11,22 @@ from app.schemas.availability import DoctorAvailabilityResponse, TimeSlot
 from app.schemas.chat import ChatMessage, ChatRequest, ChatResponse, MessageRole
 from app.schemas.common import HealthCheckResponse, ResponseWrapper
 from app.schemas.doctor import DoctorBase, DoctorResponse
+from app.schemas.management_agent import (
+    ApproveCancellationApiResponse,
+    ApproveReschedulingApiResponse,
+    CancellationApprovalDecision,
+    CancellationApprovalRequest,
+    CancellationProposal,
+    CancellationResult,
+    PrepareCancellationApiRequest,
+    PrepareCancellationApiResponse,
+    PrepareReschedulingApiRequest,
+    PrepareReschedulingApiResponse,
+    ReschedulingApprovalDecision,
+    ReschedulingApprovalRequest,
+    ReschedulingProposal,
+    ReschedulingResult,
+)
 from app.schemas.patient import PatientBase, PatientCreate, PatientResponse
 
 __all__ = [
@@ -32,4 +48,18 @@ __all__ = [
     "TimeSlot",
     "DoctorAvailabilityResponse",
     "AgentStateSchema",
+    "CancellationProposal",
+    "ReschedulingProposal",
+    "CancellationApprovalDecision",
+    "CancellationApprovalRequest",
+    "ReschedulingApprovalDecision",
+    "ReschedulingApprovalRequest",
+    "CancellationResult",
+    "ReschedulingResult",
+    "PrepareCancellationApiRequest",
+    "PrepareCancellationApiResponse",
+    "ApproveCancellationApiResponse",
+    "PrepareReschedulingApiRequest",
+    "PrepareReschedulingApiResponse",
+    "ApproveReschedulingApiResponse",
 ]

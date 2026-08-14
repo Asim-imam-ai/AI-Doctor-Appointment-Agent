@@ -36,8 +36,9 @@ class Settings(BaseSettings):
     SUPABASE_URL: Optional[str] = None
     SUPABASE_KEY: Optional[str] = None
 
-    # Logging
-    LOG_LEVEL: str = "INFO"
+    # Policy Settings
+    CANCELLATION_WINDOW_MINUTES: int = 120
+    MAX_AGENT_ITERATIONS: int = 5
 
 
 settings = Settings()

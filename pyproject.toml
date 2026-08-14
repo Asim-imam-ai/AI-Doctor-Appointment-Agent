@@ -38,7 +38,7 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B"]
-ignore = []
+ignore = ["E501"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"

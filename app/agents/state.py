@@ -13,6 +13,12 @@ from app.schemas.availability_agent import (
 )
 from app.schemas.booking_agent import BookingProposal, BookingResult
 from app.schemas.doctor_discovery import DoctorSearchCriteria, DoctorSearchResult
+from app.schemas.management_agent import (
+    CancellationProposal,
+    CancellationResult,
+    ReschedulingProposal,
+    ReschedulingResult,
+)
 
 
 class DoctorDiscoveryState(TypedDict):
@@ -61,6 +67,52 @@ class AppointmentBookingState(TypedDict):
     approval_status: Optional[str]  # e.g. "PENDING", "APPROVED", "REJECTED"
     proposal_version: int
     booking_result: Optional[BookingResult]
+    response: Optional[str]
+    error: Optional[str]
+    iteration_count: int
+    tool_call_count: int
+    metadata: Dict[str, Any]
+
+
+class AppointmentCancellationState(TypedDict):
+    """Explicit state representation for Cancellation HITL Graph (Phase 6)."""
+
+    messages: Annotated[List[BaseMessage], add_messages]
+    user_message: str
+    patient_id: uuid.UUID
+    appointment_id: Optional[uuid.UUID]
+    user_timezone: str
+    reason: Optional[str]
+    intent: Optional[str]
+    cancellation_proposal: Optional[CancellationProposal]
+    approval_status: Optional[str]  # e.g. "PENDING", "APPROVED", "REJECTED"
+    proposal_version: int
+    cancellation_result: Optional[CancellationResult]
+    matching_appointments: Optional[List[Dict[str, Any]]]
+    response: Optional[str]
+    error: Optional[str]
+    iteration_count: int
+    tool_call_count: int
+    metadata: Dict[str, Any]
+
+
+class AppointmentReschedulingState(TypedDict):
+    """Explicit state representation for Rescheduling HITL Graph (Phase 6)."""
+
+    messages: Annotated[List[BaseMessage], add_messages]
+    user_message: str
+    patient_id: uuid.UUID
+    appointment_id: Optional[uuid.UUID]
+    new_slot_id: Optional[uuid.UUID]
+    user_timezone: str
+    reason: Optional[str]
+    intent: Optional[str]
+    rescheduling_proposal: Optional[ReschedulingProposal]
+    approval_status: Optional[str]  # e.g. "PENDING", "APPROVED", "REJECTED"
+    proposal_version: int
+    rescheduling_result: Optional[ReschedulingResult]
+    matching_appointments: Optional[List[Dict[str, Any]]]
+    available_slots: Optional[List[Dict[str, Any]]]
     response: Optional[str]
     error: Optional[str]
     iteration_count: int

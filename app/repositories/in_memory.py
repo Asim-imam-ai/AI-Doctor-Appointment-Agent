@@ -294,3 +294,24 @@ class InMemoryAppointmentRepository(AppointmentRepository):
         )
         self._storage[appointment_id] = updated_appt
         return updated_appt
+
+    def reschedule(
+        self,
+        appointment_id: uuid.UUID,
+        new_start_time: datetime,
+        new_end_time: datetime,
+        status: AppointmentStatus = AppointmentStatus.CONFIRMED,
+    ) -> Optional[AppointmentModel]:
+        appt = self._storage.get(appointment_id)
+        if not appt:
+            return None
+        updated_appt = appt.model_copy(
+            update={
+                "start_time": new_start_time,
+                "end_time": new_end_time,
+                "status": status,
+                "updated_at": datetime.now(timezone.utc),
+            }
+        )
+        self._storage[appointment_id] = updated_appt
+        return updated_appt
