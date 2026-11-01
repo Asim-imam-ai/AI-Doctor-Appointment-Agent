@@ -4,7 +4,13 @@ import { MessageCircle, Trash2 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../lib/auth";
 import { chat, conversations } from "../../lib/services";
-import { PageHeader, LoadingState, ErrorState } from "../../components/common";
+import {
+  PageHeader,
+  LoadingState,
+  ErrorState,
+  ProposalDialog,
+} from "../../components/common";
+import type { Proposal } from "../../types/api";
 export function ChatPage() {
   const { session } = useAuth();
   const [searchParams] = useSearchParams();
@@ -12,6 +18,12 @@ export function ChatPage() {
     searchParams.get("conversation"),
   );
   const [input, setInput] = useState("");
+  const [pendingProposal, setPendingProposal] = useState<{
+    conversationId: string;
+    proposal: Proposal;
+  } | null>(null);
+  const [proposalOpen, setProposalOpen] = useState(false);
+  const [proposalResolved, setProposalResolved] = useState(false);
   const queryClient = useQueryClient();
   const list = useQuery({
     queryKey: ["conversations", session?.user.id],
@@ -33,6 +45,7 @@ export function ChatPage() {
     mutationFn: conversations.remove,
     onSuccess: (_result, id) => {
       if (selected === id) setSelected(null);
+      if (pendingProposal?.conversationId === id) setPendingProposal(null);
       void queryClient.invalidateQueries({ queryKey: ["conversations"] });
     },
   });
@@ -40,13 +53,31 @@ export function ChatPage() {
     mutationFn: async (message: string) => {
       const id = selected ?? (await conversations.create()).id;
       setSelected(id);
-      await chat.send(id, message);
-      return id;
+      const response = await chat.send(id, message);
+      return { id, response };
     },
-    onSuccess: (id) => {
+    onSuccess: ({ id, response }) => {
       setInput("");
       void queryClient.invalidateQueries({ queryKey: ["conversation", id] });
       void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      let proposal: Proposal | null = null;
+      if (response.requires_hitl && response.booking_proposal)
+        proposal = { kind: "booking", data: response.booking_proposal };
+      else if (response.requires_hitl && response.cancellation_proposal)
+        proposal = {
+          kind: "cancellation",
+          data: response.cancellation_proposal,
+        };
+      else if (response.requires_hitl && response.rescheduling_proposal)
+        proposal = {
+          kind: "rescheduling",
+          data: response.rescheduling_proposal,
+        };
+      if (proposal) {
+        setPendingProposal({ conversationId: id, proposal });
+        setProposalResolved(false);
+        setProposalOpen(true);
+      }
     },
   });
   function submit(e: FormEvent) {
@@ -64,7 +95,7 @@ export function ChatPage() {
         <aside className="conversation-panel">
           <button
             className="button full"
-            disabled={create.isPending}
+            disabled={create.isPending || send.isPending}
             onClick={() => create.mutate()}
           >
             New conversation
@@ -78,6 +109,7 @@ export function ChatPage() {
               <div className="conversation-row" key={c.id}>
                 <button
                   className={`conversation-link ${selected === c.id ? "selected" : ""}`}
+                  disabled={send.isPending}
                   onClick={() => setSelected(c.id)}
                 >
                   {c.title}
@@ -85,7 +117,7 @@ export function ChatPage() {
                 <button
                   className="icon-button"
                   aria-label={`Delete ${c.title}`}
-                  disabled={remove.isPending}
+                  disabled={remove.isPending || send.isPending}
                   onClick={() => {
                     if (window.confirm(`Delete ${c.title}?`))
                       remove.mutate(c.id);
@@ -100,6 +132,14 @@ export function ChatPage() {
           )}
         </aside>
         <section className="chat-panel" aria-label="Conversation">
+          {pendingProposal?.conversationId === selected && !proposalOpen && (
+            <button
+              className="button secondary"
+              onClick={() => setProposalOpen(true)}
+            >
+              Review pending request
+            </button>
+          )}
           <div className="messages">
             {detail.isLoading ? (
               <LoadingState />
@@ -135,6 +175,7 @@ export function ChatPage() {
           <form className="chat-form" onSubmit={submit}>
             <textarea
               aria-label="Message"
+              disabled={send.isPending}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
@@ -160,6 +201,14 @@ export function ChatPage() {
           )}
         </section>
       </div>
+      <ProposalDialog
+        proposal={proposalOpen ? (pendingProposal?.proposal ?? null) : null}
+        onDecisionCompleted={() => setProposalResolved(true)}
+        onClose={() => {
+          setProposalOpen(false);
+          if (proposalResolved) setPendingProposal(null);
+        }}
+      />
     </>
   );
 }

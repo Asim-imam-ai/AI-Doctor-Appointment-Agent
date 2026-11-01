@@ -58,21 +58,29 @@ export function DateText({ value }: { value: string }) {
 export function ProposalDialog({
   proposal,
   onClose,
+  onDecisionCompleted,
 }: {
   proposal: Proposal | null;
   onClose: () => void;
+  onDecisionCompleted?: () => void;
 }) {
   return proposal ? (
-    <ProposalDialogContent proposal={proposal} onClose={onClose} />
+    <ProposalDialogContent
+      proposal={proposal}
+      onClose={onClose}
+      onDecisionCompleted={onDecisionCompleted}
+    />
   ) : null;
 }
 
 function ProposalDialogContent({
   proposal,
   onClose,
+  onDecisionCompleted,
 }: {
   proposal: Proposal;
   onClose: () => void;
+  onDecisionCompleted?: () => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -125,6 +133,7 @@ function ProposalDialogContent({
       await query.invalidateQueries({ queryKey: ["appointments"] });
       await query.invalidateQueries({ queryKey: ["availability"] });
       setResult(response.message);
+      onDecisionCompleted?.();
     } catch (e) {
       setError(
         e instanceof Error ? e.message : "Could not complete this decision.",

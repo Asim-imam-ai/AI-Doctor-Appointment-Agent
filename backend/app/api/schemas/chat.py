@@ -5,6 +5,12 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
+from app.domain.proposals.models import (
+    BookingProposal,
+    CancellationProposal,
+    ReschedulingProposal,
+)
+
 
 class MessageRole(str, Enum):
     SYSTEM = "system"
@@ -28,3 +34,6 @@ class ChatResponse(BaseModel):
     message: str
     requires_hitl: bool = False
     action_type: Optional[str] = None
+    booking_proposal: Optional[BookingProposal] = None
+    cancellation_proposal: Optional[CancellationProposal] = None
+    rescheduling_proposal: Optional[ReschedulingProposal] = None

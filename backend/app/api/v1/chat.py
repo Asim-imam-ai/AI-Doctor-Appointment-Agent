@@ -32,11 +32,27 @@ async def chat_endpoint(
         )
         response = result.get("response", "I could not complete that request.")
         conversations.append_message(patient.id, conversation_id, "ASSISTANT", response)
+        output = result.get("result") or {}
+        proposal_keys = {
+            "booking": "booking_proposal",
+            "cancellation": "cancellation_proposal",
+            "rescheduling": "rescheduling_proposal",
+        }
+        proposal_key = proposal_keys.get(result.get("intent"))
+        proposal = output.get(proposal_key) if proposal_key else None
+        if (
+            result.get("error")
+            or not isinstance(proposal, dict)
+            or proposal.get("status") != "PENDING_APPROVAL"
+            or str(proposal.get("patient_id")) != str(patient.id)
+        ):
+            proposal_key, proposal = None, None
         return ChatResponse(
             session_id=str(conversation_id),
             message=response,
-            requires_hitl=bool(result.get("result")),
+            requires_hitl=proposal is not None,
             action_type=result.get("intent"),
+            **({proposal_key: proposal} if proposal_key else {}),
         )
     except (ValueError, KeyError, PermissionError) as exc:
         raise HTTPException(status_code=404, detail="Conversation not found.") from exc

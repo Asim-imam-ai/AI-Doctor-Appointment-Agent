@@ -147,6 +147,9 @@ export const chat = {
       message: string;
       action_type: string | null;
       requires_hitl: boolean;
+      booking_proposal: BookingProposal | null;
+      cancellation_proposal: CancellationProposal | null;
+      rescheduling_proposal: ReschedulingProposal | null;
     }>("/chat", { session_id, message }),
 };
 export const knowledge = {

@@ -557,3 +557,56 @@ test("a patient can save and remove a supported preference", async ({
   await expect(page.getByText("Preference removed.")).toBeVisible();
   await expect(remove).toBeHidden();
 });
+
+test("chat presents an appointment proposal for explicit rejection", async ({
+  page,
+}) => {
+  await signedIn(page);
+  await mockApi(page);
+  let decisions = 0;
+  await page.route("**/api/v1/chat", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        session_id: "conversation-1",
+        message: "Review the request.",
+        action_type: "booking",
+        requires_hitl: true,
+        booking_proposal: bookingProposal,
+        cancellation_proposal: null,
+        rescheduling_proposal: null,
+      }),
+    }),
+  );
+  await page.route("**/api/v1/appointments/booking-1/approve", (route) => {
+    decisions++;
+    expect(route.request().postDataJSON().decision).toBe("REJECT");
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        status: "success",
+        message: "Booking proposal rejected.",
+      }),
+    });
+  });
+  await page.goto("/chat");
+  await page
+    .getByRole("textbox", { name: "Message" })
+    .fill("Book an appointment");
+  await page.getByRole("button", { name: "Send" }).click();
+  await expect(page.getByRole("dialog")).toContainText(doctor.name);
+  expect(decisions).toBe(0);
+  await page.getByRole("button", { name: "Close", exact: true }).click();
+  await page.getByRole("button", { name: "Review pending request" }).click();
+  await page.getByRole("button", { name: "Reject" }).click();
+  await expect(page.getByRole("dialog")).toContainText(
+    "Booking proposal rejected.",
+  );
+  expect(decisions).toBe(1);
+  await page.getByRole("button", { name: "Done" }).click();
+  await expect(
+    page.getByRole("button", { name: "Review pending request" }),
+  ).toBeHidden();
+});
