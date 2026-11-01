@@ -1,90 +1,49 @@
 # AI Doctor Appointment Agent
 
-A production-oriented AI Doctor Appointment Agent built with Python 3.12, FastAPI, Pydantic v2, LangChain, LangGraph, Supabase, and Docker.
+FastAPI backend for doctor discovery, availability, appointment proposals, clinic knowledge retrieval, and patient conversations. Appointment assistance is not medical diagnosis or treatment.
 
-> **Disclaimer:** This project is an appointment assistance system and is not a medical diagnosis or treatment system.
+## Architecture
 
-## Project Status
+The modular monolith lives in `backend/app`. FastAPI v1 handlers call domain services through dependencies. Domain services depend on repository protocols; Supabase adapters provide the production persistence. LangGraph has separate discovery, availability, booking, cancellation, and rescheduling workflows, with a routing orchestrator for chat. Booking and appointment changes require authenticated, durable approval proposals and PostgreSQL RPC transactions. Knowledge retrieval uses configured OpenAI embeddings and Supabase pgvector.
 
-- **Phase 1 (Completed):** Foundation + CI Baseline established (FastAPI setup, Pydantic Settings, API versioning, Health checks, Docker, Ruff, pytest, GitHub Actions).
-- **Phase 2 (Completed):** Supabase + Domain + Data Layer established (Domain Pydantic models, Supabase migrations with constraints/indexes, Repository layer, Service layer, deterministic tests).
-- **Phase 3 (Completed):** Doctor Discovery Agent established (LangGraph workflow, read-only search tools, intent safety boundaries, FastAPI endpoint `/api/v1/doctors/search`, unit & graph test suite).
+Notification and reminder application behavior has been removed. Historical notification and reminder tables in the existing Supabase schema are intentionally retained and unused to avoid destructive changes to deployed data.
 
-## Tech Stack
+## Configuration
 
-- **Core:** Python 3.12+, FastAPI, Pydantic v2, Pydantic Settings
-- **AI & Orchestration:** LangChain, LangGraph, OpenAI, LangSmith
-- **Database:** Supabase / PostgreSQL
-- **DevOps & Tooling:** Docker, Docker Compose, GitHub Actions, Ruff, pytest
+Copy `backend/.env.example` to a local `.env` and configure the Supabase project URL, server-only service role key, OpenAI API key, and optional LangSmith settings. Never expose `SUPABASE_SERVICE_ROLE_KEY` to a browser or client. Patient endpoints require a Supabase Auth bearer token; knowledge ingestion and document management additionally require a verified `app_metadata.role` of `admin` or `superuser`.
 
-## Project Architecture
+Apply Supabase migrations in order, including `supabase/migrations/003_atomic_appointments_and_proposals.sql`, before enabling appointment mutation endpoints.
 
-```
-User → FastAPI → LangGraph → Doctor Discovery Agent → Doctor Search Tool → Doctor Service → Doctor Repository → Supabase
-```
-For detailed architectural documentation, see [docs/architecture.md](docs/architecture.md).
+## Local development
 
-Workflow entry points are in `app/agents/`, graph wiring in `app/agents/graph/`,
-node implementations in `app/agents/nodes/`, and shared state in
-`app/agents/state.py`. Tools call deterministic services; repository interfaces
-select Supabase or in-memory persistence. Memory and knowledge retrieval live
-in `app/memory/` and `app/rag/`. The canonical backend entry point is `app.main:app`.
+From the repository root:
 
-## Local Development Setup
-
-1. **Clone & Setup Environment:**
-   ```bash
-   cp .env.example .env
-   ```
-
-2. **Install Dependencies:**
-   Using pip:
-   ```bash
-   pip install -e .[dev]
-   ```
-
-3. **Run Application:**
-   Using uvicorn:
-   ```bash
-   uvicorn app.main:app --reload --port 8000
-   ```
-   Or using PowerShell:
-   ```powershell
-   python -m uvicorn app.main:app --reload --port 8000
-   ```
-
-4. **Verify Health Endpoint:**
-   ```bash
-   curl http://localhost:8000/api/v1/health
-   ```
-
-5. **Test Doctor Search Endpoint:**
-   ```bash
-   curl -X POST http://localhost:8000/api/v1/doctors/search -H "Content-Type: application/json" -d "{\"message\": \"Find me a cardiologist\"}"
-   ```
-
-6. **Run Tests & Linting:**
-   ```bash
-   pytest
-   ruff check .
-   ruff format --check .
-   ```
-
-## Docker Setup
-
-Build and run using Docker Compose:
-```bash
-docker-compose up --build
-```
-Verify container health:
-```bash
-curl http://localhost:8000/api/v1/health
+```shell
+uv sync --directory backend --extra dev
+uv run --directory backend uvicorn app.main:app --reload --port 8000
 ```
 
-## Future Phases Roadmap
+Health is public at `http://localhost:8000/api/v1/health`; API docs are at `/docs`. Authenticated calls use `Authorization: Bearer <Supabase access token>`.
 
-- Doctor availability search & slot management (Phase 4)
-- Appointment booking, rescheduling, and cancellation workflows
-- Guardrails & prompt injection / jailbreak protection
-- Human-In-The-Loop (HITL) approval mechanism
-- Production AWS deployment pipeline
+```shell
+uv run --directory backend pytest -q
+uv run --directory backend ruff check app tests
+uv run --directory backend ruff format --check app tests
+```
+
+## Docker
+
+The Compose build uses `backend/` as its context:
+
+```shell
+docker compose up --build
+```
+
+Provide runtime secrets through the deployment environment; they are not embedded in the image.
+
+## Data and security notes
+
+- Appointment booking, cancellation, rescheduling, and proposal transitions are implemented as PostgreSQL RPC transactions with row locking and replay protection.
+- Patient identity is derived from a validated Supabase Auth bearer token and linked patient profile. API clients cannot select another patient by supplying an ID.
+- RAG requires OpenAI embeddings; embedding/provider errors fail the request instead of returning fabricated vectors.
+- Historical notification/reminder database objects are not used by the application and are not removed by migrations.

@@ -1,0 +1,1 @@
+"""PostgreSQL vector store integration."""

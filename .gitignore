@@ -17,6 +17,7 @@ ENV/
 
 # Testing & Linting caches
 .pytest_cache/
+.pytest-run/
 .ruff_cache/
 .coverage
 htmlcov/
