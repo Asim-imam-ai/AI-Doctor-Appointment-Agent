@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import {
   Link,
   NavLink,
@@ -106,10 +106,33 @@ const nav = [
 function Shell({ children }: { children: React.ReactNode }) {
   const { session, signOut } = useAuth();
   const [menu, setMenu] = useState(false);
+  const sidebarRef = useRef<HTMLElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (menu)
+      sidebarRef.current?.querySelector<HTMLAnchorElement>("a")?.focus();
+  }, [menu]);
+  function closeMenu() {
+    setMenu(false);
+    menuButtonRef.current?.focus();
+  }
   return (
     <div className="shell">
-      <aside className={`sidebar ${menu ? "open" : ""}`}>
-        <Link to="/dashboard" className="brand" onClick={() => setMenu(false)}>
+      <aside
+        ref={sidebarRef}
+        id="patient-navigation"
+        className={`sidebar ${menu ? "open" : ""}`}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") closeMenu();
+        }}
+      >
+        <Link
+          to="/dashboard"
+          className="brand"
+          onClick={() => {
+            if (menu) closeMenu();
+          }}
+        >
           <span className="brand-icon">
             <HeartPulse size={23} />
           </span>
@@ -123,7 +146,9 @@ function Shell({ children }: { children: React.ReactNode }) {
             <NavLink
               key={item.to}
               to={item.to}
-              onClick={() => setMenu(false)}
+              onClick={() => {
+                if (menu) closeMenu();
+              }}
               className={({ isActive }) =>
                 `nav-link ${isActive ? "active" : ""}`
               }
@@ -147,9 +172,11 @@ function Shell({ children }: { children: React.ReactNode }) {
       <div className="main-area">
         <header className="topbar">
           <button
+            ref={menuButtonRef}
             className="icon-button mobile-menu"
-            aria-label="Toggle menu"
+            aria-label={menu ? "Close navigation" : "Open navigation"}
             aria-expanded={menu}
+            aria-controls="patient-navigation"
             onClick={() => setMenu(!menu)}
           >
             <Menu />
@@ -170,7 +197,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         <button
           className="mobile-overlay"
           aria-label="Close menu"
-          onClick={() => setMenu(false)}
+          onClick={closeMenu}
         />
       )}
     </div>

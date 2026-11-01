@@ -861,11 +861,13 @@ a {
   .sidebar {
     position: fixed;
     left: 0;
+    visibility: hidden;
     transform: translateX(-100%);
     transition: transform 0.2s;
     width: 270px;
   }
   .sidebar.open {
+    visibility: visible;
     transform: translateX(0);
   }
   .mobile-menu,

@@ -286,11 +286,60 @@ test("rescheduling shows the original and new time before approval", async ({
   await page.getByLabel("New date").fill("2026-11-21");
   await page.getByRole("button", { name: "Find replacement slots" }).click();
   await page.locator(".slot-choice").first().click();
+  await expect(page.locator(".slot-choice").first()).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
   await page.getByRole("button", { name: "Review reschedule request" }).click();
   await expect(page.getByRole("dialog")).toContainText("Current time");
   await page.getByRole("button", { name: "Confirm reschedule" }).click();
   await expect(page.getByRole("dialog")).toContainText(
     "Appointment rescheduled.",
+  );
+});
+
+test("mobile patient navigation moves focus into the menu and restores it on Escape", async ({
+  page,
+}) => {
+  await signedIn(page);
+  await mockApi(page);
+  await page.setViewportSize({ width: 375, height: 850 });
+  await page.goto("/dashboard");
+  const navigation = page.getByRole("navigation", {
+    name: "Primary navigation",
+    includeHidden: true,
+  });
+  await expect(navigation).toBeHidden();
+  const open = page.getByRole("button", { name: "Open navigation" });
+  await open.focus();
+  await page.keyboard.press("Enter");
+  await expect(navigation).toBeVisible();
+  await expect(page.locator("#patient-navigation .brand")).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(navigation).toBeHidden();
+  await expect(open).toBeFocused();
+});
+
+test("a cancellation request without a proposal explains the backend response", async ({
+  page,
+}) => {
+  await signedIn(page);
+  await mockApi(page);
+  await page.route("**/api/v1/appointments/cancel/prepare", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        status: "success",
+        message: "This appointment cannot be cancelled online.",
+        proposal: null,
+      }),
+    }),
+  );
+  await page.goto("/appointments/appointment-1");
+  await page.getByRole("button", { name: "Request cancellation" }).click();
+  await expect(page.getByRole("status")).toContainText(
+    "This appointment cannot be cancelled online.",
   );
 });
 test("assistant conversation receives and displays the backend reply", async ({

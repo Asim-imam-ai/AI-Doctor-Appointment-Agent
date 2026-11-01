@@ -248,6 +248,11 @@ export function AppointmentDetails() {
                   {(cancel.error as Error).message}
                 </p>
               )}
+              {cancel.data && !cancel.data.proposal && (
+                <p role="status">
+                  No cancellation proposal was returned. {cancel.data.message}
+                </p>
+              )}
             </div>
             {!["CANCELLED", "COMPLETED", "NO_SHOW", "EXPIRED"].includes(
               a.status,
@@ -287,6 +292,7 @@ export function AppointmentDetails() {
                       <button
                         className={`slot-choice ${slot?.id === s.id ? "selected" : ""}`}
                         key={s.id}
+                        aria-pressed={slot?.id === s.id}
                         onClick={() => setSlot(s)}
                       >
                         {date(s.start_time)}
@@ -316,6 +322,11 @@ export function AppointmentDetails() {
                 {move.isError && (
                   <p role="alert" className="error-text">
                     {(move.error as Error).message}
+                  </p>
+                )}
+                {move.data && !move.data.proposal && (
+                  <p role="status">
+                    No rescheduling proposal was returned. {move.data.message}
                   </p>
                 )}
               </section>
