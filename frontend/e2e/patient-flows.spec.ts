@@ -610,3 +610,80 @@ test("chat presents an appointment proposal for explicit rejection", async ({
     page.getByRole("button", { name: "Review pending request" }),
   ).toBeHidden();
 });
+
+test("a proposal can be recovered from chat history and is rechecked after a decision", async ({
+  page,
+}) => {
+  await signedIn(page);
+  await mockApi(page);
+  const proposalId = "301db831-b594-4faa-9c28-50f12c1d6111";
+  let status = "PENDING_APPROVAL";
+  const proposal = {
+    ...bookingProposal,
+    booking_request_id: proposalId,
+    start_time: "2099-01-02T10:00:00Z",
+    end_time: "2099-01-02T10:30:00Z",
+    expires_at: "2099-01-01T00:00:00Z",
+  };
+  await page.route("**/api/v1/conversations/conversation-1", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: "conversation-1",
+        title: "New conversation",
+        status: "ACTIVE",
+        last_message_at: "2026-11-01T10:00:00Z",
+        summary: null,
+        messages: [
+          {
+            id: "message-1",
+            role: "ASSISTANT",
+            content: "Review your request.",
+            created_at: "2026-11-01T10:00:00Z",
+            proposal_reference: { id: proposalId, kind: "booking" },
+          },
+        ],
+      }),
+    }),
+  );
+  await page.route(`**/api/v1/approvals/${proposalId}`, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: proposalId,
+        action: "BOOKING",
+        status,
+        version: 1,
+        expires_at: proposal.expires_at,
+        payload: proposal,
+      }),
+    }),
+  );
+  await page.route(`**/api/v1/appointments/${proposalId}/approve`, (route) => {
+    expect(route.request().postDataJSON().decision).toBe("REJECT");
+    status = "REJECTED";
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        status: "success",
+        message: "Booking proposal rejected.",
+      }),
+    });
+  });
+  await page.goto("/chat?conversation=conversation-1");
+  await page
+    .getByRole("button", { name: "Review request", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toContainText(doctor.name);
+  await page.getByRole("button", { name: "Reject" }).click();
+  await page.getByRole("button", { name: "Done" }).click();
+  await page
+    .getByRole("button", { name: "Review request", exact: true })
+    .click();
+  await expect(page.getByRole("alert")).toContainText(
+    "no longer awaiting a decision",
+  );
+});

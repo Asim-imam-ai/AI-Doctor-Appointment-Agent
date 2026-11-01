@@ -31,7 +31,6 @@ async def chat_endpoint(
             }
         )
         response = result.get("response", "I could not complete that request.")
-        conversations.append_message(patient.id, conversation_id, "ASSISTANT", response)
         output = result.get("result") or {}
         proposal_keys = {
             "booking": "booking_proposal",
@@ -47,12 +46,27 @@ async def chat_endpoint(
             or str(proposal.get("patient_id")) != str(patient.id)
         ):
             proposal_key, proposal = None, None
-        return ChatResponse(
+        chat_response = ChatResponse(
             session_id=str(conversation_id),
             message=response,
             requires_hitl=proposal is not None,
             action_type=result.get("intent"),
             **({proposal_key: proposal} if proposal_key else {}),
         )
+        metadata = {}
+        if proposal_key:
+            id_keys = {
+                "booking_proposal": "booking_request_id",
+                "cancellation_proposal": "cancellation_request_id",
+                "rescheduling_proposal": "reschedule_request_id",
+            }
+            metadata["proposal_reference"] = {
+                "id": proposal[id_keys[proposal_key]],
+                "kind": result["intent"],
+            }
+        conversations.append_message(
+            patient.id, conversation_id, "ASSISTANT", response, metadata=metadata
+        )
+        return chat_response
     except (ValueError, KeyError, PermissionError) as exc:
         raise HTTPException(status_code=404, detail="Conversation not found.") from exc

@@ -4,13 +4,14 @@ import { MessageCircle, Trash2 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../lib/auth";
 import { chat, conversations } from "../../lib/services";
+import { recoverProposal } from "../../lib/proposal-recovery";
 import {
   PageHeader,
   LoadingState,
   ErrorState,
   ProposalDialog,
 } from "../../components/common";
-import type { Proposal } from "../../types/api";
+import type { Proposal, ProposalReference } from "../../types/api";
 export function ChatPage() {
   const { session } = useAuth();
   const [searchParams] = useSearchParams();
@@ -49,6 +50,22 @@ export function ChatPage() {
       void queryClient.invalidateQueries({ queryKey: ["conversations"] });
     },
   });
+  const recover = useMutation({
+    mutationFn: ({
+      reference,
+    }: {
+      reference: ProposalReference;
+      conversationId: string;
+    }) => recoverProposal(reference),
+    onSuccess: (proposal, variables) => {
+      setPendingProposal({
+        conversationId: variables.conversationId,
+        proposal,
+      });
+      setProposalResolved(false);
+      setProposalOpen(true);
+    },
+  });
   const send = useMutation({
     mutationFn: async (message: string) => {
       const id = selected ?? (await conversations.create()).id;
@@ -82,7 +99,8 @@ export function ChatPage() {
   });
   function submit(e: FormEvent) {
     e.preventDefault();
-    if (input.trim() && !send.isPending) send.mutate(input.trim());
+    if (input.trim() && !send.isPending && !recover.isPending)
+      send.mutate(input.trim());
   }
   return (
     <>
@@ -95,7 +113,7 @@ export function ChatPage() {
         <aside className="conversation-panel">
           <button
             className="button full"
-            disabled={create.isPending || send.isPending}
+            disabled={create.isPending || send.isPending || recover.isPending}
             onClick={() => create.mutate()}
           >
             New conversation
@@ -109,7 +127,7 @@ export function ChatPage() {
               <div className="conversation-row" key={c.id}>
                 <button
                   className={`conversation-link ${selected === c.id ? "selected" : ""}`}
-                  disabled={send.isPending}
+                  disabled={send.isPending || recover.isPending}
                   onClick={() => setSelected(c.id)}
                 >
                   {c.title}
@@ -117,7 +135,9 @@ export function ChatPage() {
                 <button
                   className="icon-button"
                   aria-label={`Delete ${c.title}`}
-                  disabled={remove.isPending || send.isPending}
+                  disabled={
+                    remove.isPending || send.isPending || recover.isPending
+                  }
                   onClick={() => {
                     if (window.confirm(`Delete ${c.title}?`))
                       remove.mutate(c.id);
@@ -157,6 +177,24 @@ export function ChatPage() {
                       : "CarePath assistant"}
                   </small>
                   <p>{m.content}</p>
+                  {m.role.toLowerCase() === "assistant" &&
+                    m.proposal_reference &&
+                    selected && (
+                      <button
+                        className="text-button"
+                        disabled={recover.isPending}
+                        onClick={() =>
+                          recover.mutate({
+                            reference: m.proposal_reference!,
+                            conversationId: selected,
+                          })
+                        }
+                      >
+                        {recover.isPending
+                          ? "Checking request…"
+                          : "Review request"}
+                      </button>
+                    )}
                 </div>
               ))
             ) : (
@@ -175,7 +213,7 @@ export function ChatPage() {
           <form className="chat-form" onSubmit={submit}>
             <textarea
               aria-label="Message"
-              disabled={send.isPending}
+              disabled={send.isPending || recover.isPending}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
@@ -189,7 +227,7 @@ export function ChatPage() {
             />
             <button
               className="button"
-              disabled={!input.trim() || send.isPending}
+              disabled={!input.trim() || send.isPending || recover.isPending}
             >
               Send
             </button>
@@ -197,6 +235,11 @@ export function ChatPage() {
           {send.isError && (
             <p className="error-text" role="alert">
               {(send.error as Error).message}
+            </p>
+          )}
+          {recover.isError && (
+            <p className="error-text" role="alert">
+              {(recover.error as Error).message}
             </p>
           )}
         </section>

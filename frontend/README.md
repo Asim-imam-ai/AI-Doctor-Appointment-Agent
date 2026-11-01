@@ -28,7 +28,7 @@ Use `npm run build`, `npm run lint`, and `npm run test` for validation. Run `npm
 | Booking | `POST /api/v1/appointments/prepare`, then `POST /api/v1/appointments/{proposal_id}/approve` |
 | Cancellation | `POST /api/v1/appointments/cancel/prepare`, then `POST /api/v1/appointments/cancel/{proposal_id}/approve` |
 | Rescheduling | `POST /api/v1/appointments/reschedule/prepare`, then `POST /api/v1/appointments/reschedule/{proposal_id}/approve` |
-| Chat and history | `POST /api/v1/chat`, `GET/POST /api/v1/conversations`, `GET /api/v1/conversations/{id}` |
+| Chat and history | `POST /api/v1/chat`, `GET/POST /api/v1/conversations`, `GET /api/v1/conversations/{id}`, `GET /api/v1/approvals/{proposal_id}` |
 | Clinic guide | `POST /api/v1/knowledge/search` |
 | Preferences | `GET/POST /api/v1/conversations/memory`, `DELETE /api/v1/conversations/memory/{id}` |
 | Patient setup and profile | `POST /api/v1/patients/me`, `GET /api/v1/patients/me` |
@@ -39,6 +39,6 @@ Authenticated requests attach the Supabase access token. The backend resolves th
 
 - After Supabase registration and email confirmation, a new user completes the patient setup form. Accounts whose email already belongs to a separate unlinked patient record need clinic support to link that record.
 - The backend has no doctor detail endpoint. A doctor profile opens from the current search result; a direct reload requires searching again.
-- Chat returns text and, when available, an owned pending appointment proposal for explicit approval or rejection. It does not return structured doctor or slot results or stream progress. One deferred chat proposal can be reopened while the chat page stays open; a newer proposal replaces it, and the API does not expose a way to recover it from conversation history after leaving or reloading. Past messages can be viewed, but the current orchestrator processes each new message without passing prior conversation turns as context.
+- Chat returns text and, when available, an owned pending appointment proposal for explicit approval or rejection. New assistant messages retain a proposal reference; reopening one checks the current patient-owned proposal state before showing it. Messages created before this support have no reference. Chat does not return structured doctor or slot results or stream progress. Past messages can be viewed, but the current orchestrator processes each new message without passing prior conversation turns as context.
 - The backend supports reading the current patient's name, email, phone, and timezone, but has no profile update endpoint. The profile screen shows the linked record and supports the backend's specialty, doctor, time range, and timezone preferences.
 - Live Supabase and OpenAI credentials plus an isolated test project are needed for end-to-end validation against the real services. The checked-in Playwright suite verifies browser interactions with controlled responses; it does not prove hosted database mutation or LLM behavior.

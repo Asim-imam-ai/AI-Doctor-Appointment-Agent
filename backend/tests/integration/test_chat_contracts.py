@@ -7,6 +7,8 @@ from fastapi.testclient import TestClient
 
 from app.api.dependencies.auth import AuthenticatedPatient, get_current_patient
 from app.api.v1 import chat as chat_routes
+from app.api.v1 import conversations as conversation_routes
+from app.domain.conversations.models import ConversationMessageModel, ConversationModel
 from app.domain.proposals.models import (
     BookingProposal,
     CancellationProposal,
@@ -93,6 +95,18 @@ def test_chat_exposes_only_the_patients_pending_proposal(chat_client, kind):
     assert response.json()[key]["patient_id"] == str(patient.id)
     service.get_conversation.assert_called_with(patient.id, conversation_id)
     assert service.append_message.call_count == 2
+    reference = service.append_message.call_args_list[-1].kwargs["metadata"][
+        "proposal_reference"
+    ]
+    assert reference["kind"] == kind
+    assert reference["id"] == getattr(
+        proposal,
+        {
+            "booking": "booking_request_id",
+            "cancellation": "cancellation_request_id",
+            "rescheduling": "reschedule_request_id",
+        }[kind],
+    )
 
 
 def test_chat_does_not_treat_knowledge_results_as_approval(chat_client):
@@ -149,3 +163,65 @@ def test_chat_does_not_present_completed_proposals(chat_client, status):
     assert response.status_code == 200
     assert response.json()["requires_hitl"] is False
     assert response.json()["booking_proposal"] is None
+
+
+def test_owned_conversation_returns_only_valid_assistant_proposal_references(
+    chat_client, monkeypatch
+):
+    client, patient, _, _ = chat_client
+    service = MagicMock()
+    conversation = ConversationModel(patient_id=patient.id)
+    proposal_id = uuid.uuid4()
+    service.get_conversation.return_value = conversation
+    service.get_messages.return_value = [
+        ConversationMessageModel(
+            conversation_id=conversation.id,
+            role="ASSISTANT",
+            content="Review.",
+            metadata={
+                "proposal_reference": {"id": str(proposal_id), "kind": "booking"}
+            },
+        ),
+        ConversationMessageModel(
+            conversation_id=conversation.id,
+            role="ASSISTANT",
+            content="Invalid.",
+            metadata={"proposal_reference": {"id": "invalid", "kind": "booking"}},
+        ),
+        ConversationMessageModel(
+            conversation_id=conversation.id,
+            role="USER",
+            content="User text.",
+            metadata={
+                "proposal_reference": {"id": str(proposal_id), "kind": "booking"}
+            },
+        ),
+    ]
+    monkeypatch.setattr(
+        conversation_routes, "get_conversation_service", lambda: service
+    )
+
+    response = client.get(f"/api/v1/conversations/{conversation.id}")
+    assert response.status_code == 200
+    messages = response.json()["messages"]
+    assert messages[0]["proposal_reference"] == {
+        "id": str(proposal_id),
+        "kind": "booking",
+    }
+    assert messages[1]["proposal_reference"] is None
+    assert messages[2]["proposal_reference"] is None
+    service.get_messages.assert_called_once_with(patient.id, conversation.id)
+
+
+def test_foreign_conversation_does_not_expose_proposal_references(
+    chat_client, monkeypatch
+):
+    client, _, _, _ = chat_client
+    service = MagicMock()
+    service.get_conversation.side_effect = PermissionError("not owned")
+    monkeypatch.setattr(
+        conversation_routes, "get_conversation_service", lambda: service
+    )
+    response = client.get(f"/api/v1/conversations/{uuid.uuid4()}")
+    assert response.status_code == 404
+    service.get_messages.assert_not_called()

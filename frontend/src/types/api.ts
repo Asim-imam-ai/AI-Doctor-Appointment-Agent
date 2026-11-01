@@ -66,6 +66,10 @@ export type Proposal =
   | { kind: "booking"; data: BookingProposal }
   | { kind: "cancellation"; data: CancellationProposal }
   | { kind: "rescheduling"; data: ReschedulingProposal };
+export type ProposalReference = {
+  id: string;
+  kind: Proposal["kind"];
+};
 export type Conversation = {
   id: string;
   title: string;
@@ -79,6 +83,7 @@ export type ConversationDetail = Conversation & {
     role: string;
     content: string;
     created_at: string;
+    proposal_reference?: ProposalReference | null;
   }>;
 };
 export type MemoryItem = {

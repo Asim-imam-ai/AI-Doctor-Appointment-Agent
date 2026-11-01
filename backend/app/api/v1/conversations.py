@@ -3,16 +3,19 @@
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import ValidationError
 
 from app.api.dependencies.auth import AuthenticatedPatient, get_current_patient
 from app.api.schemas.memory import (
     ConversationDetailResponse,
+    ConversationMessageResponse,
     ConversationResponse,
     CreateConversationRequest,
     ListConversationsResponse,
     ListMemoriesResponse,
     MemoryItemRequest,
     MemoryItemResponse,
+    ProposalReference,
 )
 from app.infrastructure.db.services import get_conversation_service, get_memory_service
 
@@ -91,6 +94,18 @@ async def get_conversation_endpoint(
         raise HTTPException(status_code=404, detail="Conversation not found.") from exc
     except PermissionError as exc:
         raise HTTPException(status_code=404, detail="Conversation not found.") from exc
+    response_messages = []
+    for message in messages:
+        response_message = ConversationMessageResponse.model_validate(message)
+        reference = (message.metadata or {}).get("proposal_reference")
+        if message.role.upper() == "ASSISTANT" and reference is not None:
+            try:
+                response_message.proposal_reference = ProposalReference.model_validate(
+                    reference
+                )
+            except ValidationError:
+                pass
+        response_messages.append(response_message)
     return ConversationDetailResponse(
         id=conversation.id,
         patient_id=conversation.patient_id,
@@ -99,7 +114,7 @@ async def get_conversation_endpoint(
         summary=conversation.summary,
         last_message_at=conversation.last_message_at,
         created_at=conversation.created_at,
-        messages=messages,
+        messages=response_messages,
     )
 
 

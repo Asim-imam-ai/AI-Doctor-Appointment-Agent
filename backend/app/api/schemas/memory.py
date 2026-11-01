@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -14,6 +14,11 @@ class CreateConversationRequest(BaseModel):
     title: Optional[str] = Field("New Conversation", max_length=255)
 
 
+class ProposalReference(BaseModel):
+    id: uuid.UUID
+    kind: Literal["booking", "cancellation", "rescheduling"]
+
+
 class ConversationMessageResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -22,6 +27,7 @@ class ConversationMessageResponse(BaseModel):
     role: str
     content: str
     created_at: datetime
+    proposal_reference: Optional[ProposalReference] = None
 
 
 class ConversationResponse(BaseModel):
