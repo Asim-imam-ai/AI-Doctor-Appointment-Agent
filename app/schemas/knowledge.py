@@ -56,3 +56,19 @@ class KnowledgeDocumentResponse(BaseModel):
 class ListKnowledgeDocumentsResponse(BaseModel):
     status: str = "success"
     documents: List[KnowledgeDocumentResponse] = []
+
+
+class KnowledgeSourceReference(BaseModel):
+    document_id: str
+    title: str
+    section: Optional[str] = None
+    source: str
+    version: str
+
+
+class RAGResult(BaseModel):
+    answer: str
+    grounded: bool
+    category: Optional[str] = None
+    retrieval_count: int
+    sources: List[KnowledgeSourceReference] = []

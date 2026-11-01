@@ -20,6 +20,7 @@ dependencies = [
     "langchain-openai>=0.1.0",
     "langgraph>=0.0.30",
     "supabase>=2.3.0",
+    "tzdata>=2026.6",
 ]
 
 [project.optional-dependencies]

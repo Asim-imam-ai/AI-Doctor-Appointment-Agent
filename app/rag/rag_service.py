@@ -6,10 +6,10 @@ from typing import List, Optional
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
-from pydantic import BaseModel
 
 from app.guardrails.engine import GuardrailPipeline
 from app.models import KnowledgeCategory, KnowledgeChunkModel
+from app.rag.embeddings_service import EmbeddingsService
 from app.repositories import (
     get_knowledge_chunk_repository,
     get_knowledge_document_repository,
@@ -18,7 +18,8 @@ from app.repositories.base import (
     KnowledgeChunkRepository,
     KnowledgeDocumentRepository,
 )
-from app.services.embeddings_service import EmbeddingsService
+from app.schemas.knowledge import KnowledgeSourceReference as KnowledgeSourceReference
+from app.schemas.knowledge import RAGResult as RAGResult
 
 logger = logging.getLogger(__name__)
 
@@ -34,22 +35,6 @@ CRITICAL SECURITY & GROUNDING RULES:
 5. DO NOT claim an appointment is booked, cancelled, or rescheduled. Live appointment state must come from the authoritative appointment service, not knowledge documents.
 6. Clearly cite the source document name or policy title when answering.
 """
-
-
-class KnowledgeSourceReference(BaseModel):
-    document_id: str
-    title: str
-    section: Optional[str] = None
-    source: str
-    version: str
-
-
-class RAGResult(BaseModel):
-    answer: str
-    grounded: bool
-    category: Optional[str] = None
-    retrieval_count: int
-    sources: List[KnowledgeSourceReference] = []
 
 
 class RAGService:

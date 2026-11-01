@@ -4,6 +4,48 @@
 
 ## Architectural Layers
 
+The current code layout separates the five existing workflows (discovery,
+availability, booking, cancellation and rescheduling) without changing their
+business rules:
+
+```text
+app/
+  main.py                  FastAPI application and lifecycle
+  api/routes/              HTTP contracts and boundary checks
+  agents/
+    <workflow>.py          Public compatibility entry points
+    graph/<workflow>.py    Graph construction and conditional routing
+    nodes/<workflow>.py    Existing workflow steps
+    state.py               Shared TypedDict state contracts
+  tools/                   LLM tool adapters and read-only search helpers
+  services/                Domain logic, proposal stores, reminders and notifications
+  repositories/
+    base.py                Persistence interfaces
+    in_memory/             Domain-specific in-memory implementations
+    supabase/              Domain-specific database implementations
+  infrastructure/supabase/ Client initialization
+  memory/                  Conversation persistence, preferences, context and summaries
+  rag/                     Ingestion, embeddings and grounded retrieval
+  schemas/                 Existing structured contracts
+  models.py                Shared persistence/domain models
+  guardrails/              Existing safety policies and pipeline
+  core/                    Settings, prompts, logging and shared concerns
+tests/                     Existing workflow, API, security and unit tests
+knowledge/                 Source documents, outside application code
+supabase/migrations/       Unchanged database migrations
+```
+
+Graph modules depend on nodes; nodes use tools and services. Proposal lifecycle
+and mutation coordination live in services, with compatibility re-exports from
+tools referring to the same functions and stores. Services depend on repository
+interfaces/factories, and repositories connect through infrastructure. Memory and
+RAG use those same persistence boundaries. No second memory system or evaluation
+framework was introduced. `main.py` re-exports the single application in
+`app/main.py` for compatibility.
+
+The phase-specific sections below describe the existing workflows and their
+historical development; the tree above is the current module organization.
+
 ```
 API Layer (FastAPI)
        ↓

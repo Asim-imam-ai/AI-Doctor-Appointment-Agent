@@ -6,13 +6,13 @@ from app.models import (
     KnowledgeCategory,
     KnowledgeDocumentStatus,
 )
+from app.rag.embeddings_service import EmbeddingsService
+from app.rag.ingestion_pipeline import IngestionPipeline
+from app.rag.rag_service import RAGService
 from app.repositories import (
     _in_memory_knowledge_chunk_repo,
     _in_memory_knowledge_doc_repo,
 )
-from app.services.embeddings_service import EmbeddingsService
-from app.services.ingestion_pipeline import IngestionPipeline
-from app.services.rag_service import RAGService
 
 
 @pytest.fixture(autouse=True)

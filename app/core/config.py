@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "doctor-appointment-agent"
     APP_ENV: Environment = Environment.DEVELOPMENT
     DEBUG: bool = True
+    LOG_LEVEL: str = "INFO"
     API_V1_PREFIX: str = "/api/v1"
 
     # LLM Settings (Future Phase setup)

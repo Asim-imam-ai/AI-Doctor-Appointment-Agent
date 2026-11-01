@@ -4,6 +4,10 @@ import uuid
 
 import pytest
 
+from app.memory.context_builder import ContextBuilder
+from app.memory.conversation_service import ConversationService
+from app.memory.memory_service import MemoryService
+from app.memory.summarizer import summarize_conversation
 from app.models import (
     ConversationStatus,
     MemoryItemModel,
@@ -19,10 +23,6 @@ from app.repositories import (
     _in_memory_memory_repo,
     _in_memory_patient_repo,
 )
-from app.services.context_builder import ContextBuilder
-from app.services.conversation_service import ConversationService
-from app.services.memory_service import MemoryService
-from app.services.summarizer import summarize_conversation
 
 
 @pytest.fixture(autouse=True)

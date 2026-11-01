@@ -8,6 +8,8 @@ from typing import Optional
 from fastapi import APIRouter, Header, HTTPException, Query, status
 
 from app.models import KnowledgeCategory, KnowledgeDocumentStatus
+from app.rag.ingestion_pipeline import IngestionPipeline
+from app.rag.rag_service import RAGService
 from app.repositories import (
     get_knowledge_chunk_repository,
     get_knowledge_document_repository,
@@ -20,8 +22,6 @@ from app.schemas.knowledge import (
     KnowledgeSourceSchema,
     ListKnowledgeDocumentsResponse,
 )
-from app.services.ingestion_pipeline import IngestionPipeline
-from app.services.rag_service import RAGService
 
 logger = logging.getLogger(__name__)
 

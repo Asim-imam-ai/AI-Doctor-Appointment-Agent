@@ -32,8 +32,8 @@ from app.schemas.management_agent import (
     ReschedulingApprovalRequest,
 )
 from app.services import AppointmentService
-from app.tools.booking_proposal import get_pending_proposal
-from app.tools.management_proposal import (
+from app.services.booking_proposal import get_pending_proposal
+from app.services.management_proposal import (
     get_pending_cancellation_proposal,
     get_pending_rescheduling_proposal,
 )

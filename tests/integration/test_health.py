@@ -7,6 +7,14 @@ from app.main import app
 client = TestClient(app)
 
 
+def test_application_lifespan_and_compatible_entrypoint():
+    from main import app as compatibility_app
+
+    assert compatibility_app is app
+    with TestClient(app) as started_client:
+        assert started_client.get("/api/v1/health").status_code == 200
+
+
 def test_v1_health_endpoint():
     response = client.get("/api/v1/health")
     assert response.status_code == 200

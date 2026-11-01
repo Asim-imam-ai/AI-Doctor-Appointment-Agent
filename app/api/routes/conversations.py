@@ -6,6 +6,8 @@ from typing import Optional
 
 from fastapi import APIRouter, Header, HTTPException, Query, status
 
+from app.memory.conversation_service import ConversationService
+from app.memory.memory_service import MemoryService
 from app.repositories import (
     get_conversation_message_repository,
     get_conversation_repository,
@@ -20,8 +22,6 @@ from app.schemas.memory import (
     MemoryItemRequest,
     MemoryItemResponse,
 )
-from app.services.conversation_service import ConversationService
-from app.services.memory_service import MemoryService
 
 logger = logging.getLogger(__name__)
 

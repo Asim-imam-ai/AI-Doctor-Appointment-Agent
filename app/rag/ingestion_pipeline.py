@@ -12,6 +12,7 @@ from app.models import (
     KnowledgeDocumentModel,
     KnowledgeDocumentStatus,
 )
+from app.rag.embeddings_service import EmbeddingsService
 from app.repositories import (
     get_knowledge_chunk_repository,
     get_knowledge_document_repository,
@@ -20,7 +21,6 @@ from app.repositories.base import (
     KnowledgeChunkRepository,
     KnowledgeDocumentRepository,
 )
-from app.services.embeddings_service import EmbeddingsService
 
 logger = logging.getLogger(__name__)
 

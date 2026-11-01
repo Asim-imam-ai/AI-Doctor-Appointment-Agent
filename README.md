@@ -24,6 +24,12 @@ User → FastAPI → LangGraph → Doctor Discovery Agent → Doctor Search Tool
 ```
 For detailed architectural documentation, see [docs/architecture.md](docs/architecture.md).
 
+Workflow entry points are in `app/agents/`, graph wiring in `app/agents/graph/`,
+node implementations in `app/agents/nodes/`, and shared state in
+`app/agents/state.py`. Tools call deterministic services; repository interfaces
+select Supabase or in-memory persistence. Memory and knowledge retrieval live
+in `app/memory/` and `app/rag/`. The canonical backend entry point is `app.main:app`.
+
 ## Local Development Setup
 
 1. **Clone & Setup Environment:**
