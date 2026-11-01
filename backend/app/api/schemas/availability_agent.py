@@ -1,6 +1,7 @@
 """Schemas and models for Doctor Availability Agent."""
 
 import uuid
+from datetime import date as CalendarDate
 from datetime import datetime
 from enum import Enum
 from typing import List, Optional
@@ -60,6 +61,12 @@ class AvailabilitySearchApiRequest(BaseModel):
         description="Natural language request to check doctor availability",
     )
     user_timezone: str = Field("UTC", description="User preferred timezone string")
+    doctor_id: Optional[uuid.UUID] = Field(
+        None, description="Exact doctor for a date-specific search"
+    )
+    appointment_date: Optional[CalendarDate] = Field(
+        None, description="Exact date in the user's timezone"
+    )
 
 
 class AvailabilitySearchApiResponse(BaseModel):

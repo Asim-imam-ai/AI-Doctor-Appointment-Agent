@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Clock3 } from "lucide-react";
 import { availability } from "../../lib/services";
+import { localToday, matchingSlots } from "../../lib/slots";
 import {
   PageHeader,
   LoadingState,
@@ -15,15 +16,23 @@ const date = (value: string) => <DateText value={value} />;
 export function AvailabilityPage() {
   const { doctorId } = useParams();
   const [day, setDay] = useState("");
-  const [term, setTerm] = useState("");
+  const [searchedDay, setSearchedDay] = useState("");
   const query = useQuery({
-    queryKey: ["availability", doctorId, term],
-    queryFn: ({ signal }) => availability.search(term, signal),
-    enabled: Boolean(term),
+    queryKey: ["availability", doctorId, searchedDay],
+    queryFn: ({ signal }) =>
+      availability.searchForDoctor(doctorId!, searchedDay, signal),
+    enabled: Boolean(doctorId && searchedDay),
   });
+  const slots = matchingSlots(
+    query.data?.slots ?? [],
+    doctorId ?? "",
+    searchedDay,
+  );
   function submit(e: FormEvent) {
     e.preventDefault();
-    if (day) setTerm(`Available appointments for doctor ${doctorId} on ${day}`);
+    if (!day) return;
+    if (day === searchedDay) void query.refetch();
+    else setSearchedDay(day);
   }
   return (
     <>
@@ -38,14 +47,17 @@ export function AvailabilityPage() {
           <input
             type="date"
             value={day}
-            min={new Date().toISOString().slice(0, 10)}
-            onChange={(e) => setDay(e.target.value)}
+            min={localToday()}
+            onChange={(e) => {
+              setDay(e.target.value);
+              setSearchedDay("");
+            }}
             required
           />
         </label>
         <button className="button">Check availability</button>
       </form>
-      {!term ? (
+      {!searchedDay ? (
         <EmptyState>Choose a date to see available times.</EmptyState>
       ) : query.isLoading ? (
         <LoadingState />
@@ -54,14 +66,11 @@ export function AvailabilityPage() {
           message={(query.error as Error).message}
           retry={() => void query.refetch()}
         />
-      ) : query.data?.slots.filter((s) => !doctorId || s.doctor_id === doctorId)
-          .length ? (
+      ) : slots.length ? (
         <div className="slot-grid">
-          {query.data.slots
-            .filter((s) => !doctorId || s.doctor_id === doctorId)
-            .map((s) => (
-              <SlotCard key={s.id} slot={s} />
-            ))}
+          {slots.map((s) => (
+            <SlotCard key={s.id} slot={s} />
+          ))}
         </div>
       ) : (
         <EmptyState>

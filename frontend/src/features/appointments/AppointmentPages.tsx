@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { ArrowRight, CalendarDays } from "lucide-react";
 import { useAuth } from "../../lib/auth";
 import { appointments, availability } from "../../lib/services";
+import { localToday, matchingSlots } from "../../lib/slots";
 import {
   PageHeader,
   LoadingState,
@@ -189,10 +190,8 @@ export function AppointmentDetails() {
   const [search, setSearch] = useState(false);
   const available = useQuery({
     queryKey: ["availability", query.data?.doctor_id, day],
-    queryFn: () =>
-      availability.search(
-        `Available appointments for doctor ${query.data!.doctor_id} on ${day}`,
-      ),
+    queryFn: ({ signal }) =>
+      availability.searchForDoctor(query.data!.doctor_id, day, signal),
     enabled: search && Boolean(day) && Boolean(query.data),
   });
   const cancel = useMutation({
@@ -208,6 +207,10 @@ export function AppointmentDetails() {
     },
   });
   const a = query.data;
+  const replacementSlots =
+    search && a && !available.isFetching && !available.isError
+      ? matchingSlots(available.data?.slots ?? [], a.doctor_id, day)
+      : [];
   return (
     <>
       <Link className="back-link" to="/appointments">
@@ -265,7 +268,7 @@ export function AppointmentDetails() {
                     <input
                       type="date"
                       value={day}
-                      min={new Date().toISOString().slice(0, 10)}
+                      min={localToday()}
                       onChange={(e) => {
                         setDay(e.target.value);
                         setSlot(null);
@@ -276,34 +279,36 @@ export function AppointmentDetails() {
                   <button
                     className="button secondary"
                     disabled={!day}
-                    onClick={() => setSearch(true)}
+                    onClick={() => {
+                      setSlot(null);
+                      if (search) void available.refetch();
+                      else setSearch(true);
+                    }}
                   >
                     Find replacement slots
                   </button>
                 </div>
-                {available.isLoading && <LoadingState />}
+                {available.isFetching && <LoadingState />}
                 {available.isError && (
                   <ErrorState message={(available.error as Error).message} />
                 )}
                 <div className="slot-grid">
-                  {available.data?.slots
-                    .filter((s) => s.doctor_id === a.doctor_id)
-                    .map((s) => (
-                      <button
-                        className={`slot-choice ${slot?.id === s.id ? "selected" : ""}`}
-                        key={s.id}
-                        aria-pressed={slot?.id === s.id}
-                        onClick={() => setSlot(s)}
-                      >
-                        {date(s.start_time)}
-                      </button>
-                    ))}
+                  {replacementSlots.map((s) => (
+                    <button
+                      className={`slot-choice ${slot?.id === s.id ? "selected" : ""}`}
+                      key={s.id}
+                      aria-pressed={slot?.id === s.id}
+                      onClick={() => setSlot(s)}
+                    >
+                      {date(s.start_time)}
+                    </button>
+                  ))}
                 </div>
                 {search &&
                   available.data &&
-                  !available.data.slots.some(
-                    (s) => s.doctor_id === a.doctor_id,
-                  ) && (
+                  !available.isFetching &&
+                  !available.isError &&
+                  !replacementSlots.length && (
                     <EmptyState>
                       No replacement slots found for that date.
                     </EmptyState>
@@ -338,6 +343,8 @@ export function AppointmentDetails() {
         proposal={proposal}
         onClose={() => {
           setProposal(null);
+          setSlot(null);
+          setSearch(false);
           void query.refetch();
         }}
       />

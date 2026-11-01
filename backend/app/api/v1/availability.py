@@ -6,9 +6,12 @@ import uuid
 from fastapi import APIRouter, HTTPException, status
 
 from app.agentic.workflows.availability.graph import build_doctor_availability_graph
+from app.agentic.workflows.availability.nodes import classify_availability_intent_node
+from app.agentic.workflows.availability.tools import execute_availability_search
 from app.api.schemas.availability_agent import (
     AvailabilitySearchApiRequest,
     AvailabilitySearchApiResponse,
+    AvailabilitySearchCriteria,
 )
 
 logger = logging.getLogger(__name__)
@@ -37,6 +40,32 @@ async def search_availability_endpoint(request: AvailabilitySearchApiRequest):
         )
 
     try:
+        if request.doctor_id is not None and request.appointment_date is not None:
+            classification = classify_availability_intent_node(
+                {"user_message": request.message}
+            )
+            if classification.get("intent") != "AVAILABILITY_SEARCH":
+                return AvailabilitySearchApiResponse(
+                    request_id=request_id,
+                    status="success",
+                    message=classification.get(
+                        "response", "Availability search could not be completed."
+                    ),
+                    slots=[],
+                )
+            result = execute_availability_search(
+                AvailabilitySearchCriteria(
+                    doctor_id=request.doctor_id,
+                    date=request.appointment_date.isoformat(),
+                    user_timezone=request.user_timezone,
+                )
+            )
+            return AvailabilitySearchApiResponse(
+                request_id=request_id,
+                status="success",
+                message="Availability search completed.",
+                slots=result.slots,
+            )
         graph = build_doctor_availability_graph()
         initial_state = {
             "user_message": request.message,

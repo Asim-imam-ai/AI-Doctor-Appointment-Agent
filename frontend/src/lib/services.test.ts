@@ -35,6 +35,17 @@ test("availability request includes the patient timezone", async () => {
   expect(JSON.parse(String(options?.body)).user_timezone).toBeTruthy();
 });
 
+test("date-specific availability sends the exact doctor and selected date", async () => {
+  reply({ status: "success", message: "Done", slots: [] });
+  await availability.searchForDoctor("doctor-1", "2099-01-02");
+  const [, options] = vi.mocked(fetch).mock.calls[0];
+  expect(JSON.parse(String(options?.body))).toMatchObject({
+    doctor_id: "doctor-1",
+    appointment_date: "2099-01-02",
+    user_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  });
+});
+
 test("booking preparation sends exact doctor and slot IDs", async () => {
   reply({ status: "success", message: "Prepared", proposal: null });
   await appointments.prepareBooking("doctor-1", "slot-1");

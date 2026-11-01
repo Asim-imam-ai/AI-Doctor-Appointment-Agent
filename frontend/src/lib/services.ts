@@ -47,6 +47,23 @@ export const availability = {
         signal,
       ),
     ),
+  searchForDoctor: async (
+    doctor_id: string,
+    appointment_date: string,
+    signal?: AbortSignal,
+  ) =>
+    success(
+      await post<AgentResult<{ slots: Slot[] }>>(
+        "/availability/search",
+        {
+          message: `Available appointments for doctor ${doctor_id} on ${appointment_date}`,
+          doctor_id,
+          appointment_date,
+          user_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        },
+        signal,
+      ),
+    ),
 };
 export const appointments = {
   list: () => api<Appointment[]>("/appointments"),

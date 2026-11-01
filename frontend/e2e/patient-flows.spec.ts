@@ -22,6 +22,12 @@ const slot = {
   timezone: "UTC",
   status: "AVAILABLE",
 };
+const replacementSlot = {
+  ...slot,
+  id: "slot-2",
+  start_time: "2026-11-21T10:00:00Z",
+  end_time: "2026-11-21T10:30:00Z",
+};
 const appointment = {
   id: "appointment-1",
   doctor_id: doctor.id,
@@ -110,7 +116,15 @@ async function mockApi(page: Page) {
         doctors: [doctor],
       };
     else if (path === "/api/v1/availability/search")
-      body = { status: "success", message: "Slots found.", slots: [slot] };
+      body = {
+        status: "success",
+        message: "Slots found.",
+        slots: [
+          request.postDataJSON().message.includes("2026-11-21")
+            ? replacementSlot
+            : slot,
+        ],
+      };
     else if (path === "/api/v1/appointments/prepare")
       body = {
         status: "success",
@@ -265,6 +279,48 @@ test("patient can view live slots and prepare a booking", async ({ page }) => {
   await expect(page.getByRole("dialog")).toContainText(doctor.name);
   await page.getByRole("button", { name: "Confirm booking" }).click();
   await expect(page.getByRole("dialog")).toContainText("Booking confirmed.");
+});
+
+test("changing the date clears old slots and excludes mismatched results", async ({
+  page,
+}) => {
+  await signedIn(page);
+  await mockApi(page);
+  await page.route("**/api/v1/availability/search", (route) => {
+    const isNewDay = route
+      .request()
+      .postDataJSON()
+      .message.includes("2026-11-21");
+    const slots = isNewDay
+      ? [
+          slot,
+          { ...replacementSlot, status: "BOOKED" },
+          { ...replacementSlot, id: "other-doctor", doctor_id: "other" },
+        ]
+      : [slot];
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        status: "success",
+        message: "Slots found.",
+        slots,
+      }),
+    });
+  });
+  await page.goto("/availability/doctor-1");
+  await page.getByLabel("Appointment date").fill("2026-11-20");
+  await page.getByRole("button", { name: "Check availability" }).click();
+  await expect(page.getByRole("button", { name: "Select time" })).toBeVisible();
+  await page.getByLabel("Appointment date").fill("2026-11-21");
+  await expect(page.getByRole("button", { name: "Select time" })).toBeHidden();
+  await page.getByRole("button", { name: "Check availability" }).click();
+  await expect(
+    page.getByText("No slots were returned for this doctor and date.", {
+      exact: false,
+    }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Select time" })).toBeHidden();
 });
 test("cancellation needs explicit review and approval", async ({ page }) => {
   await signedIn(page);

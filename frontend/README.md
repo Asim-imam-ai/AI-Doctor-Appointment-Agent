@@ -22,7 +22,7 @@ Use `npm run build`, `npm run lint`, and `npm run test` for validation. Run `npm
 | Screen | Backend operation |
 | --- | --- |
 | Doctor search | `POST /api/v1/doctors/search` |
-| Availability | `POST /api/v1/availability/search` |
+| Availability | `POST /api/v1/availability/search` with exact doctor ID, date, and timezone |
 | Dashboard and appointment history | `GET /api/v1/appointments` |
 | Appointment details | `GET /api/v1/appointments/{id}` |
 | Booking | `POST /api/v1/appointments/prepare`, then `POST /api/v1/appointments/{proposal_id}/approve` |

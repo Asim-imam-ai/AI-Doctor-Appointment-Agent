@@ -50,6 +50,30 @@ def test_availability_search_filters_past_slots():
     assert availability.search_slots.call_args.kwargs["start_after"] >= now
 
 
+def test_availability_search_uses_the_selected_local_date():
+    doctor = DoctorModel(name="Dr. Ali")
+    availability, doctors = Mock(), Mock()
+    availability.search_slots.return_value = []
+    doctors.get_doctor.return_value = doctor
+    doctors.get_doctor_specialties.return_value = []
+
+    execute_availability_search(
+        AvailabilitySearchCriteria(
+            doctor_id=doctor.id, date="2099-01-02", user_timezone="Asia/Karachi"
+        ),
+        availability_service=availability,
+        doctor_service=doctors,
+        current_time=datetime(2099, 1, 1, tzinfo=timezone.utc),
+    )
+
+    criteria = availability.search_slots.call_args.kwargs
+    assert criteria["doctor_id"] == doctor.id
+    assert criteria["start_after"] == datetime(2099, 1, 1, 19, tzinfo=timezone.utc)
+    assert criteria["end_before"] == datetime(
+        2099, 1, 2, 18, 59, 59, tzinfo=timezone.utc
+    )
+
+
 def test_availability_workflow_is_read_only_and_rejects_mutations():
     names = {tool.name for tool in AVAILABILITY_TOOLS}
     assert "search_available_slots" in names
