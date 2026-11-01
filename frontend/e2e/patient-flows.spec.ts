@@ -510,3 +510,50 @@ test("registration validates password confirmation and can show passwords", asyn
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page.getByText("Passwords do not match")).toBeVisible();
 });
+
+test("a patient can save and remove a supported preference", async ({
+  page,
+}) => {
+  await signedIn(page);
+  await mockApi(page);
+  let saved = false;
+  await page.route("**/api/v1/conversations/memory**", async (route) => {
+    const request = route.request();
+    if (request.method() === "POST") {
+      expect(request.postDataJSON()).toMatchObject({
+        key: "preferred_specialty",
+        value: "Cardiology",
+      });
+      saved = true;
+    } else if (request.method() === "DELETE") {
+      saved = false;
+    }
+    const item = {
+      id: "memory-1",
+      key: "preferred_specialty",
+      value: "Cardiology",
+      memory_type: "PREFERRED_SPECIALTY",
+    };
+    await route.fulfill({
+      status: request.method() === "POST" ? 201 : 200,
+      contentType: "application/json",
+      body: JSON.stringify(
+        request.method() === "GET" ? { memories: saved ? [item] : [] } : item,
+      ),
+    });
+  });
+  await page.goto("/profile");
+  await page
+    .getByRole("combobox", { name: "Preference", exact: true })
+    .selectOption("preferred_specialty");
+  await page.getByLabel("Preference value").fill("Cardiology");
+  await page.getByRole("button", { name: "Save preference" }).click();
+  await expect(page.getByText("Preference saved.")).toBeVisible();
+  const remove = page.getByRole("button", {
+    name: "Remove preference Preferred specialty",
+  });
+  await expect(remove).toBeVisible();
+  await remove.click();
+  await expect(page.getByText("Preference removed.")).toBeVisible();
+  await expect(remove).toBeHidden();
+});

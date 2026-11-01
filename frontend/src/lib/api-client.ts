@@ -9,6 +9,7 @@ export class ApiError extends Error {
   }
 }
 const messages: Record<number, string> = {
+  400: "The service could not accept that information. Please check it and try again.",
   401: "Your session has expired. Please sign in again.",
   403: "You do not have access to this action.",
   404: "This item could not be found.",

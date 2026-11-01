@@ -65,7 +65,8 @@ body {
 }
 button,
 input,
-textarea {
+textarea,
+select {
   font: inherit;
 }
 button {
@@ -545,6 +546,7 @@ a {
 }
 .filter-card input,
 .preference-form input,
+.preference-form select,
 .auth-card input {
   border: 1px solid #d5e2df;
   border-radius: 10px;

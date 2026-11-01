@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 
 from app.api.dependencies.auth import AuthenticatedPatient, get_current_patient
 from app.api.v1 import appointments as appointment_routes
+from app.api.v1 import conversations as conversation_routes
 from app.domain.appointments.models import AppointmentModel
 from app.infrastructure.repositories.supabase.proposal import SupabaseProposalRepository
 from app.main import app
@@ -103,3 +104,17 @@ def test_supabase_proposal_lookup_scopes_query_to_patient():
         call("id", str(proposal_id)),
         call("patient_id", str(patient_id)),
     ]
+
+
+def test_patient_cannot_delete_another_patients_preference(patient_client, monkeypatch):
+    client, patient_id = patient_client
+    memory_id = uuid.uuid4()
+    service = MagicMock()
+    service.delete_memory.side_effect = PermissionError("internal ownership detail")
+    monkeypatch.setattr(conversation_routes, "get_memory_service", lambda: service)
+
+    response = client.delete(f"/api/v1/conversations/memory/{memory_id}")
+
+    assert response.status_code == 404
+    assert "internal ownership detail" not in response.text
+    service.delete_memory.assert_called_once_with(patient_id, memory_id)

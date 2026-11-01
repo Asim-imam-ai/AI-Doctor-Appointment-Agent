@@ -69,7 +69,11 @@ async def delete_memory_endpoint(
     memory_id: uuid.UUID,
     patient: AuthenticatedPatient = Depends(get_current_patient),
 ):
-    if not get_memory_service().delete_memory(patient.id, memory_id):
+    try:
+        deleted = get_memory_service().delete_memory(patient.id, memory_id)
+    except PermissionError as exc:
+        raise HTTPException(status_code=404, detail="Memory item not found.") from exc
+    if not deleted:
         raise HTTPException(status_code=404, detail="Memory item not found.")
     return {"status": "success", "message": "Memory item deleted successfully."}
 

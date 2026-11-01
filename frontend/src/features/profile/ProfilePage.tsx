@@ -3,6 +3,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../lib/auth";
 import { conversations, patients } from "../../lib/services";
 import { PageHeader, LoadingState, ErrorState } from "../../components/common";
+
+const preferenceLabels: Record<string, string> = {
+  preferred_specialty: "Preferred specialty",
+  preferred_doctor: "Preferred doctor",
+  preferred_time_range: "Preferred time range",
+  timezone: "Timezone",
+};
 export function ProfilePage() {
   const { session } = useAuth();
   const profile = useQuery({
@@ -83,12 +90,13 @@ export function ProfilePage() {
             {memories.data.map((m) => (
               <div key={m.id}>
                 <p>
-                  <strong>{m.key}</strong> <span>{m.value}</span>
+                  <strong>{preferenceLabels[m.key] ?? m.key}</strong>{" "}
+                  <span>{m.value}</span>
                 </p>
                 <button
                   className="text-button"
                   disabled={remove.isPending}
-                  aria-label={`Remove preference ${m.key}`}
+                  aria-label={`Remove preference ${preferenceLabels[m.key] ?? m.key}`}
                   onClick={() => {
                     setNotice("");
                     remove.mutate(m.id);
@@ -113,13 +121,19 @@ export function ProfilePage() {
           className="preference-form"
         >
           <label>
-            Preference name
-            <input
+            Preference
+            <select
               value={key}
-              maxLength={100}
               onChange={(e) => setKey(e.target.value)}
               required
-            />
+            >
+              <option value="">Select a preference</option>
+              {Object.entries(preferenceLabels).map(([optionKey, label]) => (
+                <option key={optionKey} value={optionKey}>
+                  {label}
+                </option>
+              ))}
+            </select>
           </label>
           <label>
             Preference value
