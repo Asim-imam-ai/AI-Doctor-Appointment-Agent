@@ -66,6 +66,11 @@ async def get_current_patient(
     patient = profile_service.get_by_external_id(str(identity.auth_user_id))
     if patient is None:
         patient = profile_service.get_patient(identity.auth_user_id)
+        if patient is not None and patient.external_user_id not in (
+            None,
+            str(identity.auth_user_id),
+        ):
+            patient = None
     if patient is None:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

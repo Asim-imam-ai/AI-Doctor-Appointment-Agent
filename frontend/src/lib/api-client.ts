@@ -26,7 +26,9 @@ export async function api<T>(
     data: { session: null },
   };
   const token = data.session?.access_token;
-  const base = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
+  const base = import.meta.env.DEV
+    ? ""
+    : (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
   let response: Response;
   try {
     response = await fetch(`${base}/api/v1${path}`, {

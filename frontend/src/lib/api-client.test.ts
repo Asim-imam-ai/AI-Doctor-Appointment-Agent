@@ -12,7 +12,20 @@ vi.mock("./supabase", () => ({
     },
   },
 }));
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
+});
+
+test("uses the development proxy for authenticated patient requests", async () => {
+  vi.stubEnv("VITE_API_BASE_URL", "http://127.0.0.1:8000");
+  const fetchMock = vi.fn(async () => new Response(JSON.stringify({ name: "Patient" })));
+  vi.stubGlobal("fetch", fetchMock);
+  await api("/patients/me");
+  const [url, options] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+  expect(url).toBe("/api/v1/patients/me");
+  expect((options.headers as Record<string, string>).Authorization).toBe("Bearer test-token");
+});
 
 test("attaches the authenticated bearer token to search requests", async () => {
   const fetchMock = vi.fn(
