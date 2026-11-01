@@ -13,6 +13,13 @@ _bearer = HTTPBearer(auto_error=False)
 
 
 @dataclass(frozen=True)
+class AuthenticatedIdentity:
+    auth_user_id: UUID
+    email: str | None
+    role: str
+
+
+@dataclass(frozen=True)
 class AuthenticatedPatient:
     id: UUID
     auth_user_id: UUID
@@ -28,9 +35,9 @@ def _unauthorized() -> HTTPException:
     )
 
 
-async def get_current_patient(
+async def get_current_identity(
     credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
-) -> AuthenticatedPatient:
+) -> AuthenticatedIdentity:
     if credentials is None or credentials.scheme.lower() != "bearer":
         raise _unauthorized()
     token = credentials.credentials
@@ -39,19 +46,9 @@ async def get_current_patient(
         # signing keys. Claims are checked locally after signature verification.
         user, _claims = verify_access_token(token)
         auth_user_id = UUID(str(user.id))
-        profile_service = get_patient_service()
-        patient = profile_service.get_by_external_id(str(auth_user_id))
-        if patient is None:
-            patient = profile_service.get_patient(auth_user_id)
-        if patient is None:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="No patient profile is linked to this account.",
-            )
         app_metadata = getattr(user, "app_metadata", None) or {}
         role = str(app_metadata.get("role", "authenticated"))
-        return AuthenticatedPatient(
-            id=patient.id,
+        return AuthenticatedIdentity(
             auth_user_id=auth_user_id,
             email=getattr(user, "email", None),
             role=role,
@@ -60,6 +57,26 @@ async def get_current_patient(
         raise
     except Exception as exc:
         raise _unauthorized() from exc
+
+
+async def get_current_patient(
+    identity: AuthenticatedIdentity = Depends(get_current_identity),
+) -> AuthenticatedPatient:
+    profile_service = get_patient_service()
+    patient = profile_service.get_by_external_id(str(identity.auth_user_id))
+    if patient is None:
+        patient = profile_service.get_patient(identity.auth_user_id)
+    if patient is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No patient profile is linked to this account.",
+        )
+    return AuthenticatedPatient(
+        id=patient.id,
+        auth_user_id=identity.auth_user_id,
+        email=identity.email,
+        role=identity.role,
+    )
 
 
 async def require_admin(

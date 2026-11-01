@@ -1,5 +1,7 @@
 # AI Doctor Appointment Agent
 
+The patient-facing React frontend is in [`frontend/`](frontend/README.md). Run the FastAPI backend on port 8000 and `npm run dev` from `frontend/` for local use. Docker Compose also serves the frontend at port 3000; provide `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` as browser-safe build variables. See the frontend README for supported flows and current API limitations.
+
 FastAPI backend for doctor discovery, availability, appointment proposals, clinic knowledge retrieval, and patient conversations. Appointment assistance is not medical diagnosis or treatment.
 
 ## Architecture
@@ -39,7 +41,7 @@ The Compose build uses `backend/` as its context:
 docker compose up --build
 ```
 
-Provide runtime secrets through the deployment environment; they are not embedded in the image.
+Compose loads backend runtime settings from `backend/.env` when present. Provide the frontend's browser-safe `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` through the shell or a root Compose `.env` before building. Runtime secrets are not embedded in the image.
 
 ## Data and security notes
 

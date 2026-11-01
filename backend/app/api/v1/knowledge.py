@@ -25,6 +25,7 @@ from app.infrastructure.db.repositories import (
     get_knowledge_chunk_repository,
     get_knowledge_document_repository,
 )
+from app.knowledge.embeddings import EmbeddingsService
 from app.knowledge.ingestion import IngestionPipeline
 from app.knowledge.retriever import RAGService
 
@@ -36,13 +37,17 @@ router = APIRouter()
 def _get_rag_service() -> RAGService:
     d_repo = get_knowledge_document_repository()
     c_repo = get_knowledge_chunk_repository()
-    return RAGService(chunk_repo=c_repo, doc_repo=d_repo)
+    return RAGService(
+        chunk_repo=c_repo, doc_repo=d_repo, embeddings_service=EmbeddingsService()
+    )
 
 
 def _get_ingestion_pipeline() -> IngestionPipeline:
     d_repo = get_knowledge_document_repository()
     c_repo = get_knowledge_chunk_repository()
-    return IngestionPipeline(doc_repo=d_repo, chunk_repo=c_repo)
+    return IngestionPipeline(
+        doc_repo=d_repo, chunk_repo=c_repo, embeddings_service=EmbeddingsService()
+    )
 
 
 @router.post(

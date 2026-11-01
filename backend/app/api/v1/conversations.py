@@ -38,6 +38,42 @@ async def list_conversations_endpoint(
     )
 
 
+@router.get("/memory", response_model=ListMemoriesResponse)
+async def list_memories_endpoint(
+    patient: AuthenticatedPatient = Depends(get_current_patient),
+):
+    return ListMemoriesResponse(
+        memories=get_memory_service().get_user_memories(patient.id, active_only=True)
+    )
+
+
+@router.post("/memory", response_model=MemoryItemResponse, status_code=201)
+async def create_memory_endpoint(
+    request: MemoryItemRequest,
+    patient: AuthenticatedPatient = Depends(get_current_patient),
+):
+    try:
+        return get_memory_service().save_preference(
+            patient_id=patient.id,
+            key=request.key,
+            value=request.value,
+            source=request.source,
+            expires_at=request.expires_at,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.delete("/memory/{memory_id}")
+async def delete_memory_endpoint(
+    memory_id: uuid.UUID,
+    patient: AuthenticatedPatient = Depends(get_current_patient),
+):
+    if not get_memory_service().delete_memory(patient.id, memory_id):
+        raise HTTPException(status_code=404, detail="Memory item not found.")
+    return {"status": "success", "message": "Memory item deleted successfully."}
+
+
 @router.get("/{conversation_id}", response_model=ConversationDetailResponse)
 async def get_conversation_endpoint(
     conversation_id: uuid.UUID,
@@ -77,39 +113,3 @@ async def delete_conversation_endpoint(
     if not deleted:
         raise HTTPException(status_code=404, detail="Conversation not found.")
     return {"status": "success", "message": "Conversation deleted successfully."}
-
-
-@router.get("/memory", response_model=ListMemoriesResponse)
-async def list_memories_endpoint(
-    patient: AuthenticatedPatient = Depends(get_current_patient),
-):
-    return ListMemoriesResponse(
-        memories=get_memory_service().get_user_memories(patient.id, active_only=True)
-    )
-
-
-@router.post("/memory", response_model=MemoryItemResponse, status_code=201)
-async def create_memory_endpoint(
-    request: MemoryItemRequest,
-    patient: AuthenticatedPatient = Depends(get_current_patient),
-):
-    try:
-        return get_memory_service().save_preference(
-            patient_id=patient.id,
-            key=request.key,
-            value=request.value,
-            source=request.source,
-            expires_at=request.expires_at,
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-
-@router.delete("/memory/{memory_id}")
-async def delete_memory_endpoint(
-    memory_id: uuid.UUID,
-    patient: AuthenticatedPatient = Depends(get_current_patient),
-):
-    if not get_memory_service().delete_memory(patient.id, memory_id):
-        raise HTTPException(status_code=404, detail="Memory item not found.")
-    return {"status": "success", "message": "Memory item deleted successfully."}

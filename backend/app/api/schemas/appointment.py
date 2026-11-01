@@ -8,10 +8,13 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class AppointmentStatus(str, Enum):
-    PENDING = "pending"
-    CONFIRMED = "confirmed"
-    CANCELLED = "cancelled"
-    RESCHEDULED = "rescheduled"
+    PENDING = "PENDING"
+    CONFIRMED = "CONFIRMED"
+    CANCELLED = "CANCELLED"
+    RESCHEDULED = "RESCHEDULED"
+    COMPLETED = "COMPLETED"
+    NO_SHOW = "NO_SHOW"
+    EXPIRED = "EXPIRED"
 
 
 class AppointmentBase(BaseModel):
