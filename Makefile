@@ -1,28 +1,28 @@
 .PHONY: install test lint format format-check run docker-build docker-up docker-down
 
 install:
-	pip install -e .[dev]
+	uv sync --directory backend --extra dev
 
 test:
-	pytest
+	uv run --directory backend pytest -q
 
 lint:
-	ruff check .
+	uv run --directory backend ruff check app tests
 
 format:
-	ruff format .
+	uv run --directory backend ruff format app tests
 
 format-check:
-	ruff format --check .
+	uv run --directory backend ruff format --check app tests
 
 run:
-	uvicorn app.main:app --reload --port 8000
+	uv run --directory backend uvicorn app.main:app --reload --port 8000
 
 docker-build:
-	docker build -t doctor-appointment-agent:latest .
+	docker compose build
 
 docker-up:
-	docker-compose up -d
+	docker compose up -d
 
 docker-down:
-	docker-compose down
+	docker compose down

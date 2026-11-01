@@ -11,12 +11,59 @@ wheels/
 venv/
 ENV/
 
-# Environment variables & secrets
+# Environment files (keep sanitized contributor templates)
 .env
-.env.local
+.env.*
+!.env.example
+*.env
+.envrc
+
+# Credentials and private keys
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa
+id_dsa
+id_ecdsa
+id_ed25519
+credentials.json
+credentials-*.json
+client_secret*.json
+service-account*.json
+*-service-account.json
+secrets.json
+secrets.yaml
+secrets.yml
+secrets.toml
+.netrc
+.pgpass
+.npmrc
+.pypirc
+*.tfvars
+*.tfvars.json
+secrets/
+.aws/
+.ssh/
+.azure/
+.gcloud/
+.codex/
+.agents/
+supabase/.temp/
+
+# Local database files, backups, and logs
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.backup
+*.log
 
 # Testing & Linting caches
 .pytest_cache/
+.pytest-run/
 .ruff_cache/
 .coverage
 htmlcov/

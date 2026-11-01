@@ -1,0 +1,13 @@
+"""Patient persistence contract."""
+
+import uuid
+from typing import Protocol
+
+from app.domain.models import PatientModel
+
+
+class PatientRepository(Protocol):
+    def create(self, patient: PatientModel) -> PatientModel: ...
+    def get_by_id(self, patient_id: uuid.UUID) -> PatientModel | None: ...
+    def get_by_email(self, email: str) -> PatientModel | None: ...
+    def get_by_external_id(self, external_user_id: str) -> PatientModel | None: ...

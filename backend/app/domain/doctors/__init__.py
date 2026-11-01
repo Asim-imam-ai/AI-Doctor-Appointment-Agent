@@ -1,0 +1,1 @@
+"""Doctor and specialty domain."""
