@@ -3,8 +3,9 @@
 from datetime import datetime
 from enum import Enum
 from typing import Optional
+from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class AppointmentStatus(str, Enum):
@@ -35,3 +36,8 @@ class AppointmentResponse(AppointmentBase):
     id: str
     status: AppointmentStatus = AppointmentStatus.PENDING
     created_at: datetime
+
+    @field_validator("id", "doctor_id", "patient_id", mode="before")
+    @classmethod
+    def serialize_uuid_ids(cls, value):
+        return str(value) if isinstance(value, UUID) else value

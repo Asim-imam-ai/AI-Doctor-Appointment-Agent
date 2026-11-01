@@ -36,7 +36,14 @@ export async function api<T>(
         ...options.headers,
       },
     });
-  } catch {
+  } catch (error) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "name" in error &&
+      error.name === "AbortError"
+    )
+      throw error;
     throw new ApiError(
       "Could not reach the service. Check your connection and try again.",
       0,

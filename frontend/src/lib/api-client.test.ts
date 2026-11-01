@@ -1,5 +1,6 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { api, ApiError, post } from "./api-client";
+import { supabase } from "./supabase";
 
 vi.mock("./supabase", () => ({
   supabase: {
@@ -49,4 +50,26 @@ test("turns appointment conflicts into a patient-safe error", async () => {
     status: 409,
     message: "This request conflicts with the current appointment state.",
   } satisfies Partial<ApiError>);
+});
+
+test("signs out when the backend reports an expired session", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => new Response(null, { status: 401 })),
+  );
+  await expect(api("/appointments")).rejects.toMatchObject({ status: 401 });
+  expect(supabase?.auth.signOut).toHaveBeenCalledOnce();
+});
+
+test("preserves cancellation when an outdated search is aborted", async () => {
+  const abortError = new DOMException("Aborted", "AbortError");
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => {
+      throw abortError;
+    }),
+  );
+  await expect(post("/doctors/search", { message: "doctor" })).rejects.toBe(
+    abortError,
+  );
 });
