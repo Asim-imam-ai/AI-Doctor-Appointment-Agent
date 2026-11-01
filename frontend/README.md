@@ -11,7 +11,7 @@ npm install
 npm run dev
 ```
 
-Use `npm run build`, `npm run lint`, and `npm run test` for validation. Run `npm run test:e2e` with an installed Chrome browser for controlled browser tests. These Playwright tests intercept API responses and do not write patient records. The API base defaults to the current origin. Set `VITE_API_BASE_URL` only when the backend is hosted at another origin and that backend allows the frontend origin.
+Use `npm run build`, `npm run lint`, and `npm run test` for validation. Run `npm run test:e2e` with an installed Chrome browser for controlled browser tests. These Playwright tests intercept API responses and do not write patient records. Development always uses relative `/api` requests through the Vite proxy, even if `VITE_API_BASE_URL` is set. For a production build, set `VITE_API_BASE_URL` only when the backend is hosted at another origin and allows the frontend origin.
 
 ## Patient routes
 
