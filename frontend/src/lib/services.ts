@@ -26,6 +26,8 @@ function success<T extends { status: string; message: string }>(result: T): T {
   return result;
 }
 export const doctors = {
+  detail: (id: string, signal?: AbortSignal) =>
+    api<Doctor>(`/doctors/${encodeURIComponent(id)}`, { signal }),
   search: async (message: string, signal?: AbortSignal) =>
     success(
       await post<AgentResult<{ doctors: Doctor[] }>>(

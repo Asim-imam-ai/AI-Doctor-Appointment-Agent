@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, MapPin, Search } from "lucide-react";
 import { doctors } from "../../lib/services";
@@ -27,11 +27,7 @@ export function DoctorCard({ doctor }: { doctor: Doctor }) {
           {doctor.location ?? doctor.clinic_name ?? "Location not listed"}
         </p>
       </div>
-      <Link
-        className="button secondary"
-        to={`/doctors/${doctor.id}`}
-        state={{ doctor }}
-      >
+      <Link className="button secondary" to={`/doctors/${doctor.id}`}>
         View profile <ArrowRight size={16} />
       </Link>
     </article>
@@ -117,19 +113,24 @@ export function DoctorsPage() {
 }
 export function DoctorDetails() {
   const { id } = useParams();
-  const state = useLocation().state as { doctor?: Doctor } | null;
-  const candidate = state?.doctor;
-  const doctor = candidate?.id === id ? candidate : null;
+  const query = useQuery({
+    queryKey: ["doctor", id],
+    queryFn: ({ signal }) => doctors.detail(id!, signal),
+    enabled: Boolean(id),
+  });
+  const doctor = query.data;
   return (
     <>
       <Link className="back-link" to="/doctors">
         ← Back to doctors
       </Link>
-      {!doctor ? (
-        <EmptyState>
-          This doctor profile is not available from a direct link. Search the
-          doctor directory to open a current listing.
-        </EmptyState>
+      {query.isLoading ? (
+        <LoadingState />
+      ) : query.isError || !doctor ? (
+        <ErrorState
+          message="This doctor profile could not be loaded."
+          retry={() => void query.refetch()}
+        />
       ) : (
         <>
           <div className="profile-hero">

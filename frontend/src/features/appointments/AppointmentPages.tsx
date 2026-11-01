@@ -3,7 +3,7 @@ import { Link, useLocation, useParams } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ArrowRight, CalendarDays } from "lucide-react";
 import { useAuth } from "../../lib/auth";
-import { appointments, availability } from "../../lib/services";
+import { appointments, availability, doctors } from "../../lib/services";
 import { localToday, matchingSlots } from "../../lib/slots";
 import {
   PageHeader,
@@ -92,13 +92,23 @@ export function AppointmentCard({
 }: {
   appointment: Appointment;
 }) {
+  const doctor = useQuery({
+    queryKey: ["doctor", a.doctor_id],
+    queryFn: ({ signal }) => doctors.detail(a.doctor_id, signal),
+    enabled: Boolean(a.doctor_id),
+    retry: false,
+  });
   return (
     <article className="card appointment-card">
       <div className="card-top">
         <span className="status-badge">{a.status}</span>
         <CalendarDays size={20} />
       </div>
-      <h3>Doctor appointment</h3>
+      <h3>{doctor.data?.name ?? "Doctor appointment"}</h3>
+      {doctor.data?.specialties.length ? (
+        <p>{doctor.data.specialties.join(" · ")}</p>
+      ) : null}
+      {doctor.data?.location && <p>{doctor.data.location}</p>}
       <p>{date(a.start_time)}</p>
       <Link to={`/appointments/${a.id}`} className="text-button">
         View details <ArrowRight size={16} />
@@ -188,6 +198,12 @@ export function AppointmentDetails() {
   const [day, setDay] = useState("");
   const [slot, setSlot] = useState<Slot | null>(null);
   const [search, setSearch] = useState(false);
+  const doctor = useQuery({
+    queryKey: ["doctor", query.data?.doctor_id],
+    queryFn: ({ signal }) => doctors.detail(query.data!.doctor_id, signal),
+    enabled: Boolean(query.data?.doctor_id),
+    retry: false,
+  });
   const available = useQuery({
     queryKey: ["availability", query.data?.doctor_id, day],
     queryFn: ({ signal }) =>
@@ -231,7 +247,27 @@ export function AppointmentDetails() {
             <div className="card details-card">
               <span className="status-badge">{a.status}</span>
               <h2>{date(a.start_time)}</h2>
-              <p>Doctor reference: {a.doctor_id}</p>
+              {doctor.isLoading ? (
+                <p>Loading doctor details…</p>
+              ) : doctor.data ? (
+                <>
+                  <p>
+                    <strong>{doctor.data.name}</strong>
+                  </p>
+                  {doctor.data.specialties.length > 0 && (
+                    <p>{doctor.data.specialties.join(" · ")}</p>
+                  )}
+                  {(doctor.data.clinic_name || doctor.data.location) && (
+                    <p>
+                      {[doctor.data.clinic_name, doctor.data.location]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p>Doctor details are unavailable.</p>
+              )}
               <p>{a.reason ?? "No reason recorded"}</p>
               {!["CANCELLED", "COMPLETED", "NO_SHOW", "EXPIRED"].includes(
                 a.status,

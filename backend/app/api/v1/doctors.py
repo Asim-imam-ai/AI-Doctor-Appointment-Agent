@@ -7,13 +7,38 @@ from fastapi import APIRouter, HTTPException, status
 
 from app.agentic.workflows.doctor_discovery.graph import build_doctor_discovery_graph
 from app.api.schemas.doctor_discovery import (
+    DoctorDetail,
     DoctorSearchApiRequest,
     DoctorSearchApiResponse,
 )
+from app.infrastructure.db.services import get_doctor_service
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+@router.get(
+    "/{doctor_id}", response_model=DoctorDetail, summary="Get an active doctor profile"
+)
+async def get_doctor_endpoint(doctor_id: uuid.UUID):
+    service = get_doctor_service()
+    doctor = service.get_doctor(doctor_id)
+    if doctor is None or not doctor.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found."
+        )
+    specialties = service.get_doctor_specialties(doctor.id)
+    return DoctorDetail(
+        id=doctor.id,
+        name=doctor.name,
+        specialties=[specialty.name for specialty in specialties],
+        clinic_name=doctor.clinic_name,
+        location=doctor.location,
+        bio=doctor.bio,
+        consultation_duration=doctor.consultation_duration,
+        is_active=doctor.is_active,
+    )
 
 
 @router.post(

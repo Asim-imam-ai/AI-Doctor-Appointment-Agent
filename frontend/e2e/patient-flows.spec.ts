@@ -115,6 +115,8 @@ async function mockApi(page: Page) {
         message: "Doctor search completed.",
         doctors: [doctor],
       };
+    else if (path === `/api/v1/doctors/${doctor.id}` && method === "GET")
+      body = doctor;
     else if (path === "/api/v1/availability/search")
       body = {
         status: "success",
@@ -267,6 +269,16 @@ test("patient can find a doctor and open the profile", async ({ page }) => {
   await page.getByRole("button", { name: "Search" }).click();
   await page.getByRole("link", { name: /view profile/i }).click();
   await expect(page.getByRole("heading", { name: doctor.name })).toBeVisible();
+});
+
+test("a doctor profile loads directly and after refresh", async ({ page }) => {
+  await signedIn(page);
+  await mockApi(page);
+  await page.goto(`/doctors/${doctor.id}`);
+  await expect(page.getByRole("heading", { name: doctor.name })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("heading", { name: doctor.name })).toBeVisible();
+  await expect(page.getByText("Cardiology", { exact: true })).toBeVisible();
 });
 test("patient can view live slots and prepare a booking", async ({ page }) => {
   await signedIn(page);

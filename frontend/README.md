@@ -22,6 +22,7 @@ Use `npm run build`, `npm run lint`, and `npm run test` for validation. Run `npm
 | Screen | Backend operation |
 | --- | --- |
 | Doctor search | `POST /api/v1/doctors/search` |
+| Doctor profiles | `GET /api/v1/doctors/{id}` |
 | Availability | `POST /api/v1/availability/search` with exact doctor ID, date, and timezone |
 | Dashboard and appointment history | `GET /api/v1/appointments` |
 | Appointment details | `GET /api/v1/appointments/{id}` |
@@ -38,7 +39,7 @@ Authenticated requests attach the Supabase access token. The backend resolves th
 ## Current backend limitations
 
 - After Supabase registration and email confirmation, a new user completes the patient setup form. Accounts whose email already belongs to a separate unlinked patient record need clinic support to link that record.
-- The backend has no doctor detail endpoint. A doctor profile opens from the current search result; a direct reload requires searching again.
+- Doctor profile lookup only returns active doctors. Historical appointments remain visible if a doctor is inactive or their profile cannot be loaded, with a generic doctor label.
 - Chat returns text and, when available, an owned pending appointment proposal for explicit approval or rejection. New assistant messages retain a proposal reference; reopening one checks the current patient-owned proposal state before showing it. Messages created before this support have no reference. Chat does not return structured doctor or slot results or stream progress. Past messages can be viewed, but the current orchestrator processes each new message without passing prior conversation turns as context.
 - The backend supports reading the current patient's name, email, phone, and timezone, but has no profile update endpoint. The profile screen shows the linked record and supports the backend's specialty, doctor, time range, and timezone preferences.
 - Live Supabase and OpenAI credentials plus an isolated test project are needed for end-to-end validation against the real services. The checked-in Playwright suite verifies browser interactions with controlled responses; it does not prove hosted database mutation or LLM behavior.
