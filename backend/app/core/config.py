@@ -27,7 +27,9 @@ class Settings(BaseSettings):
     # LLM Settings (Future Phase setup)
     OPENAI_API_KEY: Optional[str] = None
     OPENAI_MODEL: str = "gpt-4o"
-    OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
+    VOYAGE_API_KEY: Optional[str] = None
+    VOYAGE_EMBEDDING_MODEL: str = "voyage-4-large"
+    VOYAGE_EMBEDDING_DIMENSIONS: int = 1024
 
     # LangChain / LangSmith Observability
     LANGCHAIN_API_KEY: Optional[str] = None

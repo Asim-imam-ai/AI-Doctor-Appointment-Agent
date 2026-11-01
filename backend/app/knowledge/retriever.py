@@ -61,7 +61,7 @@ class RAGService:
         if not query or not query.strip():
             return []
 
-        query_embedding = self.embeddings_service.embed_text(query)
+        query_embedding = self.embeddings_service.embed_text(query, input_type="query")
         chunks = self.chunk_repo.search_similar_chunks(
             query_embedding=query_embedding,
             top_k=top_k,

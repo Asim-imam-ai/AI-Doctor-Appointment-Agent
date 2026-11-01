@@ -17,20 +17,28 @@ from app.knowledge.retriever import RAGService
 
 
 class FakeEmbeddings:
-    def embed_text(self, text: str) -> list[float]:
-        return [0.1] * 1536
+    def embed_text(self, text: str, input_type: str = "query") -> list[float]:
+        return [0.1] * 1024
+
+    def embed_batch(
+        self, texts: list[str], input_type: str = "document"
+    ) -> list[list[float]]:
+        return [[0.1] * 1024 for _ in texts]
 
 
-def test_embeddings_use_configured_openai_client_without_pseudo_fallback():
-    response = SimpleNamespace(data=[SimpleNamespace(embedding=[0.25] * 1536)])
+def test_embeddings_use_configured_voyage_client_without_pseudo_fallback():
+    response = SimpleNamespace(embeddings=[[0.25] * 1024])
     client = Mock()
-    client.embeddings.create.return_value = response
-    service = EmbeddingsService(client=client)
+    client.embed.return_value = response
+    service = EmbeddingsService(client=client, model="voyage-4-large")
 
     vector = service.embed_text("clinic cancellation policy")
-    assert vector == [0.25] * 1536
-    client.embeddings.create.assert_called_once_with(
-        input="clinic cancellation policy", model="text-embedding-3-small"
+    assert vector == [0.25] * 1024
+    client.embed.assert_called_once_with(
+        texts=["clinic cancellation policy"],
+        model="voyage-4-large",
+        input_type="document",
+        output_dimension=1024,
     )
     with pytest.raises(ValueError, match="must not be empty"):
         service.embed_text(" ")
@@ -38,7 +46,7 @@ def test_embeddings_use_configured_openai_client_without_pseudo_fallback():
 
 def test_embedding_provider_errors_propagate():
     client = Mock()
-    client.embeddings.create.side_effect = RuntimeError("provider unavailable")
+    client.embed.side_effect = RuntimeError("provider unavailable")
     with pytest.raises(RuntimeError, match="provider unavailable"):
         EmbeddingsService(client=client).embed_text("policy")
 
@@ -67,7 +75,7 @@ def test_ingestion_validates_and_persists_embedded_chunks(tmp_path: Path):
     assert created.title == "Cancellation"
     docs = chunks.save_chunks.call_args.args[0]
     assert len(docs) == 1
-    assert docs[0].embedding == [0.1] * 1536
+    assert docs[0].embedding == [0.1] * 1024
     assert "one day" in docs[0].content
 
 

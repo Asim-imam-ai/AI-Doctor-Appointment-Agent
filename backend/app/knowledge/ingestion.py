@@ -155,9 +155,17 @@ class IngestionPipeline:
         # Split content into chunks
         text_chunks = self.chunk_text(content)
         chunk_models = []
+        embeddings = []
+        for start in range(0, len(text_chunks), 1000):
+            embeddings.extend(
+                self.embeddings_service.embed_batch(
+                    text_chunks[start : start + 1000], input_type="document"
+                )
+            )
 
-        for idx, raw_chunk in enumerate(text_chunks):
-            embedding = self.embeddings_service.embed_text(raw_chunk)
+        for idx, (raw_chunk, embedding) in enumerate(
+            zip(text_chunks, embeddings, strict=True)
+        ):
             c_model = KnowledgeChunkModel(
                 document_id=saved_doc.id,
                 chunk_index=idx,
